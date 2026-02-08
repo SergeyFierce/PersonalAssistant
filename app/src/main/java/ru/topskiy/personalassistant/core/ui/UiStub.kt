@@ -1,4 +1,4 @@
-package ru.topsky.personalassistant.core.ui
+package ru.topskiy.personalassistant.core.ui
 
 /**
  * Заглушка пакета core.ui.

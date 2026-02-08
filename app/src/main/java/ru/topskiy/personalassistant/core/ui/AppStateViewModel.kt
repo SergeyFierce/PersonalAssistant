@@ -1,16 +1,29 @@
-package ru.topsky.personalassistant.core.ui
+package ru.topskiy.personalassistant.core.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import ru.topsky.personalassistant.core.datastore.SettingsRepository
-import ru.topsky.personalassistant.core.model.ServiceId
+import ru.topskiy.personalassistant.R
+import ru.topskiy.personalassistant.core.datastore.SettingsRepository
+import ru.topskiy.personalassistant.core.model.ServiceId
+import ru.topskiy.personalassistant.core.model.ServiceRegistry
+import javax.inject.Inject
+
+fun AppStateUiState.homeServiceId(): ServiceId {
+    val enabled = enabledServices
+    favoriteService?.takeIf { it in enabled }?.let { return it }
+    lastService?.takeIf { it in enabled }?.let { return it }
+    return ServiceRegistry.all.firstOrNull { it.id in enabled }?.id ?: ServiceId.DEALS
+}
 
 data class AppStateUiState(
     val enabledServices: Set<ServiceId>,
@@ -19,7 +32,8 @@ data class AppStateUiState(
     val onboardingDone: Boolean
 )
 
-class AppStateViewModel(
+@HiltViewModel
+class AppStateViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
@@ -52,8 +66,24 @@ class AppStateViewModel(
         initialValue = "system"
     )
 
-    private val _messageEvent = MutableSharedFlow<String>()
-    val messageEvent: SharedFlow<String> = _messageEvent.asSharedFlow()
+    /** null = ещё не загружено (не рисовать каталог), true = список, false = карточки. */
+    val loadedCatalogViewMode = settingsRepository.servicesCatalogListViewFlow
+        .map { it as Boolean? }
+        .onStart { emit(null) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null
+        )
+
+    fun setServicesCatalogListView(listView: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setServicesCatalogListView(listView)
+        }
+    }
+
+    private val _messageEvent = MutableSharedFlow<Int>()
+    val messageEvent: SharedFlow<Int> = _messageEvent.asSharedFlow()
 
     fun toggleService(serviceId: ServiceId, enabled: Boolean) {
         viewModelScope.launch {
@@ -62,7 +92,7 @@ class AppStateViewModel(
                 settingsRepository.setEnabledServices(current + serviceId)
             } else {
                 if (current.size <= 1) {
-                    _messageEvent.emit("В приложении должен быть включён хотя бы один сервис")
+                    _messageEvent.emit(R.string.min_one_service_required)
                     return@launch
                 }
                 settingsRepository.setEnabledServices(current - serviceId)
@@ -98,5 +128,16 @@ class AppStateViewModel(
         viewModelScope.launch {
             settingsRepository.setTheme(mode)
         }
+    }
+
+    /** Читает сохранённое состояние из DataStore для первой навигации (избегаем показа онбординга до загрузки). */
+    suspend fun getInitialState(): AppStateUiState {
+        val s = settingsRepository.getInitialSettings()
+        return AppStateUiState(
+            enabledServices = s.enabledServices,
+            favoriteService = s.favoriteService,
+            lastService = s.lastService,
+            onboardingDone = s.onboardingDone
+        )
     }
 }

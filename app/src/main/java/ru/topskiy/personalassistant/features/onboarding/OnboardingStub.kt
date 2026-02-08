@@ -1,4 +1,4 @@
-package ru.topsky.personalassistant.features.onboarding
+package ru.topskiy.personalassistant.features.onboarding
 
 /**
  * Заглушка фичи онбординга.

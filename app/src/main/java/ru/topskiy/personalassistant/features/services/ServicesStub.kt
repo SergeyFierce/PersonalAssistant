@@ -1,4 +1,4 @@
-package ru.topsky.personalassistant.features.services
+package ru.topskiy.personalassistant.features.services
 
 /**
  * Заглушка фичи сервисов.

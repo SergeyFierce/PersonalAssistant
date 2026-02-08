@@ -11,27 +11,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import ru.topskiy.personalassistant.core.ui.AppNavHost
+import ru.topskiy.personalassistant.core.ui.AppStateViewModel
+import ru.topskiy.personalassistant.core.ui.DrawerContent
 import ru.topskiy.personalassistant.ui.theme.PersonalAssistantTheme
-import ru.topsky.personalassistant.core.datastore.SettingsRepository
-import ru.topsky.personalassistant.core.ui.AppNavHost
-import ru.topsky.personalassistant.core.ui.AppStateViewModel
-import ru.topsky.personalassistant.core.ui.DrawerContent
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import kotlinx.coroutines.CoroutineScope
-import androidx.compose.material3.DrawerState
 
 @Composable
 private fun DrawerBackHandler(
@@ -44,13 +41,14 @@ private fun DrawerBackHandler(
     }
 }
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val settingsRepository = remember { SettingsRepository(applicationContext) }
-            val themeMode by settingsRepository.themeFlow.collectAsStateWithLifecycle(initialValue = "system")
+            val viewModel: AppStateViewModel = viewModel()
+            val themeMode by viewModel.themeMode.collectAsStateWithLifecycle(initialValue = "system")
             val darkTheme = when (themeMode) {
                 "dark" -> true
                 "light" -> false
@@ -58,14 +56,6 @@ class MainActivity : ComponentActivity() {
             }
             PersonalAssistantTheme(darkTheme = darkTheme) {
                 val navController = rememberNavController()
-                val viewModel: AppStateViewModel = viewModel(
-                    factory = object : ViewModelProvider.Factory {
-                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                            @Suppress("UNCHECKED_CAST")
-                            return AppStateViewModel(settingsRepository) as T
-                        }
-                    }
-                )
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()

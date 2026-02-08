@@ -1,4 +1,4 @@
-package ru.topsky.personalassistant.core.datastore
+package ru.topskiy.personalassistant.core.datastore
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -9,8 +9,17 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import ru.topsky.personalassistant.core.model.ServiceId
+import ru.topskiy.personalassistant.core.model.ServiceId
+
+/** Начальное состояние для bootstrap: один раз прочитать из DataStore. */
+data class InitialSettings(
+    val enabledServices: Set<ServiceId>,
+    val favoriteService: ServiceId?,
+    val lastService: ServiceId?,
+    val onboardingDone: Boolean
+)
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -19,6 +28,8 @@ private val FAVORITE_SERVICE_KEY = stringPreferencesKey("favorite_service")
 private val LAST_SERVICE_KEY = stringPreferencesKey("last_service")
 private val ONBOARDING_DONE_KEY = booleanPreferencesKey("onboarding_done")
 private val THEME_KEY = stringPreferencesKey("theme")
+/** true = список, false = сетка (карточки). По умолчанию сетка. */
+private val SERVICES_CATALOG_LIST_VIEW_KEY = booleanPreferencesKey("services_catalog_list_view")
 
 private fun String.toServiceIdOrNull(): ServiceId? = try {
     ServiceId.valueOf(this)
@@ -55,6 +66,17 @@ class SettingsRepository(context: Context) {
     /** "dark" | "light" | "system" */
     val themeFlow: Flow<String> = dataStore.data.map { preferences ->
         preferences[THEME_KEY] ?: "system"
+    }
+
+    /** true = вид списком, false = вид карточками. По умолчанию карточки. */
+    val servicesCatalogListViewFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[SERVICES_CATALOG_LIST_VIEW_KEY] ?: false
+    }
+
+    suspend fun setServicesCatalogListView(listView: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[SERVICES_CATALOG_LIST_VIEW_KEY] = listView
+        }
     }
 
     suspend fun setEnabledServices(set: Set<ServiceId>) {
@@ -104,5 +126,21 @@ class SettingsRepository(context: Context) {
         dataStore.edit { preferences ->
             preferences[THEME_KEY] = mode
         }
+    }
+
+    /** Читает сохранённые настройки один раз (для корректного старта без гонки с stateIn). */
+    suspend fun getInitialSettings(): InitialSettings {
+        val prefs = dataStore.data.first()
+        val enabledRaw = prefs[ENABLED_SERVICES_KEY]
+        val enabledServices = when {
+            enabledRaw == null || enabledRaw.isEmpty() -> setOf(ServiceId.DEALS)
+            else -> enabledRaw.toServiceIdSet().ifEmpty { setOf(ServiceId.DEALS) }
+        }
+        return InitialSettings(
+            enabledServices = enabledServices,
+            favoriteService = prefs[FAVORITE_SERVICE_KEY]?.toServiceIdOrNull(),
+            lastService = prefs[LAST_SERVICE_KEY]?.toServiceIdOrNull(),
+            onboardingDone = prefs[ONBOARDING_DONE_KEY] ?: false
+        )
     }
 }

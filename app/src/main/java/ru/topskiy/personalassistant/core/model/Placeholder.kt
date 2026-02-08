@@ -1,4 +1,4 @@
-package ru.topsky.personalassistant.core.model
+package ru.topskiy.personalassistant.core.model
 
 /**
  * Заглушка пакета core.model.

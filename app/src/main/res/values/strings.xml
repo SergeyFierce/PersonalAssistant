@@ -1,3 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Личный ассистент</string>
+
+    <!-- Common -->
+    <string name="back">Назад</string>
+    <string name="menu">Меню</string>
+    <string name="loading">Загрузка…</string>
+    <string name="press_again_to_exit">Нажмите ещё раз, чтобы выйти</string>
+
+    <!-- Drawer -->
+    <string name="drawer_services">Сервисы</string>
+    <string name="drawer_settings">Настройки</string>
+    <string name="theme_switch_to_light">Включить светлую тему</string>
+    <string name="theme_switch_to_dark">Включить тёмную тему</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">С чего начнём?</string>
+    <string name="onboarding_subtitle">Выберите сервисы, которые будут доступны в приложении. Это можно изменить позже.</string>
+    <string name="onboarding_hint_title">Подсказка</string>
+    <string name="onboarding_hint_text">Вы можете выбрать избранный сервис — он будет открываться при запуске приложения.\nЕсли избранный сервис не выбран, приложение откроется на последнем использованном сервисе.</string>
+    <string name="onboarding_start">Начать</string>
+
+    <!-- Manage services -->
+    <string name="manage_services_title">Сервисы</string>
+    <string name="enabled_count">Включено: %d</string>
+    <string name="view_as_list">Показать списком</string>
+    <string name="view_as_grid">Показать сеткой</string>
+    <string name="min_one_service_required">В приложении должен быть включён хотя бы один сервис</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_theme_section">Тема</string>
+    <string name="theme_system">Системная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+
+    <!-- Service titles -->
+    <string name="service_deals">Дела</string>
+    <string name="service_notes">Заметки</string>
+    <string name="service_projects">Проекты</string>
+    <string name="service_shifts">Смены</string>
+    <string name="service_finance">Финансы</string>
+    <string name="service_subscriptions">Подписки</string>
+    <string name="service_obligations">Обязательства</string>
+    <string name="service_credits">Кредиты</string>
+    <string name="service_medicines">Лекарства</string>
+
+    <!-- Category titles -->
+    <string name="category_planning">Планирование и задачи</string>
+    <string name="category_finance">Финансы</string>
+    <string name="category_health">Здоровье</string>
+
+    <!-- Main screen -->
+    <string name="service_in_development">Сервис в разработке</string>
 </resources>

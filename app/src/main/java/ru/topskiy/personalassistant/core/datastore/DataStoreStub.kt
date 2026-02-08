@@ -1,4 +1,4 @@
-package ru.topsky.personalassistant.core.datastore
+package ru.topskiy.personalassistant.core.datastore
 
 /**
  * Заглушка пакета core.datastore.

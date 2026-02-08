@@ -1,4 +1,4 @@
-package ru.topsky.personalassistant.features.stub
+package ru.topskiy.personalassistant.features.stub
 
 /**
  * Заглушка фичи stub.
