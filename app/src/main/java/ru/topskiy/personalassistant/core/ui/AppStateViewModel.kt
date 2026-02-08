@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import ru.topskiy.personalassistant.R
+import ru.topskiy.personalassistant.core.datastore.InitialSettings
 import ru.topskiy.personalassistant.core.datastore.SettingsRepository
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
@@ -78,7 +79,9 @@ class AppStateViewModel @Inject constructor(
 
     fun setServicesCatalogListView(listView: Boolean) {
         viewModelScope.launch {
-            settingsRepository.setServicesCatalogListView(listView)
+            settingsRepository.setServicesCatalogListView(listView).onFailure {
+                _messageEvent.emit(R.string.settings_save_error)
+            }
         }
     }
 
@@ -89,50 +92,73 @@ class AppStateViewModel @Inject constructor(
         viewModelScope.launch {
             val current = uiState.value.enabledServices
             if (enabled) {
-                settingsRepository.setEnabledServices(current + serviceId)
+                settingsRepository.setEnabledServices(current + serviceId).onFailure {
+                    _messageEvent.emit(R.string.settings_save_error)
+                }
             } else {
                 if (current.size <= 1) {
                     _messageEvent.emit(R.string.min_one_service_required)
                     return@launch
                 }
-                settingsRepository.setEnabledServices(current - serviceId)
+                settingsRepository.setEnabledServices(current - serviceId).onFailure {
+                    _messageEvent.emit(R.string.settings_save_error)
+                }
             }
         }
     }
 
     fun setFavorite(serviceId: ServiceId?) {
         viewModelScope.launch {
-            settingsRepository.setFavorite(serviceId)
+            settingsRepository.setFavorite(serviceId).onFailure {
+                _messageEvent.emit(R.string.settings_save_error)
+            }
         }
     }
 
     fun setLastService(serviceId: ServiceId?) {
         viewModelScope.launch {
-            settingsRepository.setLastService(serviceId)
+            settingsRepository.setLastService(serviceId).onFailure {
+                _messageEvent.emit(R.string.settings_save_error)
+            }
         }
     }
 
     fun setOnboardingDone(done: Boolean) {
         viewModelScope.launch {
-            settingsRepository.setOnboardingDone(done)
+            settingsRepository.setOnboardingDone(done).onFailure {
+                _messageEvent.emit(R.string.settings_save_error)
+            }
         }
     }
 
     fun setEnabledServicesDirectly(services: Set<ServiceId>) {
         viewModelScope.launch {
-            settingsRepository.setEnabledServices(services)
+            settingsRepository.setEnabledServices(services).onFailure {
+                _messageEvent.emit(R.string.settings_save_error)
+            }
         }
     }
 
     fun setTheme(mode: String) {
         viewModelScope.launch {
-            settingsRepository.setTheme(mode)
+            settingsRepository.setTheme(mode).onFailure {
+                _messageEvent.emit(R.string.settings_save_error)
+            }
         }
     }
 
-    /** Читает сохранённое состояние из DataStore для первой навигации (избегаем показа онбординга до загрузки). */
+    /** Читает сохранённое состояние из DataStore для первой навигации (избегаем показа онбординга до загрузки). При ошибке — дефолт и messageEvent. */
     suspend fun getInitialState(): AppStateUiState {
-        val s = settingsRepository.getInitialSettings()
+        val defaultSettings = InitialSettings(
+            enabledServices = setOf(ServiceId.DEALS),
+            favoriteService = null,
+            lastService = null,
+            onboardingDone = false
+        )
+        val s = settingsRepository.getInitialSettings().getOrElse {
+            _messageEvent.emit(R.string.settings_load_error)
+            defaultSettings
+        }
         return AppStateUiState(
             enabledServices = s.enabledServices,
             favoriteService = s.favoriteService,

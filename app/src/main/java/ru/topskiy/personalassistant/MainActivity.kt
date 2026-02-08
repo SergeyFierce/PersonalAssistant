@@ -10,12 +10,18 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.collect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
@@ -61,6 +67,13 @@ class MainActivity : ComponentActivity() {
                 val scope = rememberCoroutineScope()
                 val drawerActive = drawerState.currentValue == DrawerValue.Open ||
                     drawerState.targetValue == DrawerValue.Open
+                val snackbarHostState = remember { SnackbarHostState() }
+                val context = LocalContext.current
+                LaunchedEffect(Unit) {
+                    viewModel.messageEvent.collect { messageResId ->
+                        snackbarHostState.showSnackbar(context.getString(messageResId))
+                    }
+                }
 
                 Box(modifier = Modifier.fillMaxSize()) {
                     ModalNavigationDrawer(
@@ -81,7 +94,8 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),
-                            contentWindowInsets = WindowInsets(0)
+                            contentWindowInsets = WindowInsets(0),
+                            snackbarHost = { SnackbarHost(snackbarHostState) }
                         ) { innerPadding ->
                             AppNavHost(
                                 navController = navController,

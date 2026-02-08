@@ -46,8 +46,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -55,10 +53,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -133,7 +129,7 @@ private fun ServiceCatalogCard(
         ) {
             Icon(
                 imageVector = service.icon,
-                contentDescription = null,
+                contentDescription = stringResource(service.titleResId),
                 modifier = Modifier.size(28.dp),
                 tint = if (darkTheme) CatalogIconDark else CatalogIconLight
             )
@@ -200,7 +196,7 @@ private fun ServiceCatalogListView(
                         ) {
                             Icon(
                                 imageVector = service.icon,
-                                contentDescription = null,
+                                contentDescription = stringResource(service.titleResId),
                                 modifier = Modifier.size(24.dp),
                                 tint = if (darkTheme) CatalogIconDark else CatalogIconLight
                             )
@@ -276,13 +272,6 @@ fun ManageServicesScreen(
     scope: CoroutineScope
 ) {
     val loadedViewMode by viewModel.loadedCatalogViewMode.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        viewModel.messageEvent.collect { messageResId ->
-            snackbarHostState.showSnackbar(context.getString(messageResId))
-        }
-    }
 
     BackHandler(enabled = !drawerActive) {
         navController.popBackStack()
@@ -362,8 +351,7 @@ fun ManageServicesScreen(
                 ),
                 modifier = Modifier.drawerOpenGestureInTopBar(onOpenDrawer)
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { innerPadding ->
         BoxWithConstraints(
             modifier = Modifier

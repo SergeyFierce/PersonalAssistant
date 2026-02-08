@@ -164,7 +164,7 @@ private fun DockItem(
     ) {
         Icon(
             imageVector = service.icon,
-            contentDescription = null,
+            contentDescription = stringResource(service.titleResId),
             modifier = Modifier.size(28.dp),
             tint = contentColor
         )

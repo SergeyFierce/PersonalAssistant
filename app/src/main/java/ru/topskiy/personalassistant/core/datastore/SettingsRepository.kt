@@ -5,10 +5,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import ru.topskiy.personalassistant.core.model.ServiceId
@@ -43,7 +45,10 @@ class SettingsRepository(context: Context) {
 
     private val dataStore = context.settingsDataStore
 
-    val enabledServicesFlow: Flow<Set<ServiceId>> = dataStore.data.map { preferences ->
+    private val dataStoreFlow = dataStore.data
+        .catch { _ -> emit(emptyPreferences()) }
+
+    val enabledServicesFlow: Flow<Set<ServiceId>> = dataStoreFlow.map { preferences ->
         val raw = preferences[ENABLED_SERVICES_KEY]
         when {
             raw == null || raw.isEmpty() -> setOf(ServiceId.DEALS)
@@ -51,36 +56,36 @@ class SettingsRepository(context: Context) {
         }
     }
 
-    val favoriteServiceFlow: Flow<ServiceId?> = dataStore.data.map { preferences ->
+    val favoriteServiceFlow: Flow<ServiceId?> = dataStoreFlow.map { preferences ->
         preferences[FAVORITE_SERVICE_KEY]?.toServiceIdOrNull()
     }
 
-    val lastServiceFlow: Flow<ServiceId?> = dataStore.data.map { preferences ->
+    val lastServiceFlow: Flow<ServiceId?> = dataStoreFlow.map { preferences ->
         preferences[LAST_SERVICE_KEY]?.toServiceIdOrNull()
     }
 
-    val onboardingDoneFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+    val onboardingDoneFlow: Flow<Boolean> = dataStoreFlow.map { preferences ->
         preferences[ONBOARDING_DONE_KEY] ?: false
     }
 
     /** "dark" | "light" | "system" */
-    val themeFlow: Flow<String> = dataStore.data.map { preferences ->
+    val themeFlow: Flow<String> = dataStoreFlow.map { preferences ->
         preferences[THEME_KEY] ?: "system"
     }
 
     /** true = вид списком, false = вид карточками. По умолчанию карточки. */
-    val servicesCatalogListViewFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+    val servicesCatalogListViewFlow: Flow<Boolean> = dataStoreFlow.map { preferences ->
         preferences[SERVICES_CATALOG_LIST_VIEW_KEY] ?: false
     }
 
-    suspend fun setServicesCatalogListView(listView: Boolean) {
+    suspend fun setServicesCatalogListView(listView: Boolean): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             preferences[SERVICES_CATALOG_LIST_VIEW_KEY] = listView
         }
     }
 
-    suspend fun setEnabledServices(set: Set<ServiceId>) {
-        if (set.isEmpty()) return
+    suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit> = runCatching {
+        if (set.isEmpty()) return@runCatching
         dataStore.edit { preferences ->
             preferences[ENABLED_SERVICES_KEY] = set.map { it.name }.toSet()
             val currentFavorite = preferences[FAVORITE_SERVICE_KEY]?.toServiceIdOrNull()
@@ -90,7 +95,7 @@ class SettingsRepository(context: Context) {
         }
     }
 
-    suspend fun setFavorite(value: ServiceId?) {
+    suspend fun setFavorite(value: ServiceId?): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             val enabledRaw = preferences[ENABLED_SERVICES_KEY]
             val enabled = when {
@@ -105,7 +110,7 @@ class SettingsRepository(context: Context) {
         }
     }
 
-    suspend fun setLastService(value: ServiceId?) {
+    suspend fun setLastService(value: ServiceId?): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             if (value != null) {
                 preferences[LAST_SERVICE_KEY] = value.name
@@ -115,28 +120,28 @@ class SettingsRepository(context: Context) {
         }
     }
 
-    suspend fun setOnboardingDone(done: Boolean) {
+    suspend fun setOnboardingDone(done: Boolean): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             preferences[ONBOARDING_DONE_KEY] = done
         }
     }
 
-    suspend fun setTheme(mode: String) {
-        if (mode !in listOf("dark", "light", "system")) return
+    suspend fun setTheme(mode: String): Result<Unit> = runCatching {
+        if (mode !in listOf("dark", "light", "system")) return@runCatching
         dataStore.edit { preferences ->
             preferences[THEME_KEY] = mode
         }
     }
 
-    /** Читает сохранённые настройки один раз (для корректного старта без гонки с stateIn). */
-    suspend fun getInitialSettings(): InitialSettings {
+    /** Читает сохранённые настройки один раз (для корректного старта без гонки с stateIn). При ошибке — fallback к дефолтам. */
+    suspend fun getInitialSettings(): Result<InitialSettings> = runCatching {
         val prefs = dataStore.data.first()
         val enabledRaw = prefs[ENABLED_SERVICES_KEY]
         val enabledServices = when {
             enabledRaw == null || enabledRaw.isEmpty() -> setOf(ServiceId.DEALS)
             else -> enabledRaw.toServiceIdSet().ifEmpty { setOf(ServiceId.DEALS) }
         }
-        return InitialSettings(
+        InitialSettings(
             enabledServices = enabledServices,
             favoriteService = prefs[FAVORITE_SERVICE_KEY]?.toServiceIdOrNull(),
             lastService = prefs[LAST_SERVICE_KEY]?.toServiceIdOrNull(),

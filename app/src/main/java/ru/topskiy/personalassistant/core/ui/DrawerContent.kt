@@ -83,7 +83,7 @@ fun DrawerContent(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Person,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.content_description_profile),
                             modifier = Modifier.size(40.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -135,7 +135,7 @@ fun DrawerContent(
                 ) {
                     Box(modifier = Modifier.clip(RoundedCornerShape(0.dp))) {
                         NavigationDrawerItem(
-                            icon = { Icon(Icons.Outlined.Apps, contentDescription = null) },
+                            icon = { Icon(Icons.Outlined.Apps, contentDescription = stringResource(R.string.drawer_services)) },
                             label = { Text(stringResource(R.string.drawer_services), modifier = Modifier.padding(start = 24.dp)) },
                             selected = false,
                             colors = NavigationDrawerItemDefaults.colors(
@@ -153,7 +153,7 @@ fun DrawerContent(
                     }
                     Box(modifier = Modifier.clip(RoundedCornerShape(0.dp))) {
                         NavigationDrawerItem(
-                            icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                            icon = { Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.drawer_settings)) },
                             label = { Text(stringResource(R.string.drawer_settings), modifier = Modifier.padding(start = 24.dp)) },
                             selected = false,
                             colors = NavigationDrawerItemDefaults.colors(

@@ -94,7 +94,7 @@ fun OnboardingScreen(
                 Spacer(modifier = Modifier.width(12.dp))
                 Icon(
                     imageVector = service.icon,
-                    contentDescription = null,
+                    contentDescription = stringResource(service.titleResId),
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))

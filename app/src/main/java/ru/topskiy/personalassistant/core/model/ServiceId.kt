@@ -2,7 +2,7 @@ package ru.topskiy.personalassistant.core.model
 
 /**
  * Идентификаторы сервисов приложения.
- * Порядок значений определяет порядок отображения в реестре.
+ * Порядок отображения в UI задаётся в [ServiceRegistry.displayOrder].
  */
 enum class ServiceId {
     DEALS,
