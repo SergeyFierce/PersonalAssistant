@@ -30,6 +30,15 @@ fun AppNavHost(
     scope: CoroutineScope,
     modifier: Modifier = Modifier
 ) {
+    val screenParams = ScreenParams(
+        navController = navController,
+        viewModel = viewModel,
+        uiState = uiState,
+        darkTheme = darkTheme,
+        onOpenDrawer = onOpenDrawer,
+        drawerActive = drawerActive,
+        scope = scope
+    )
     val dockListState = rememberLazyListState()
     NavHost(
         navController = navController,
@@ -81,13 +90,7 @@ fun AppNavHost(
 
         composable(route = MAIN_ROUTE) {
             ServicesMainScreen(
-                navController = navController,
-                viewModel = viewModel,
-                uiState = uiState,
-                darkTheme = darkTheme,
-                onOpenDrawer = onOpenDrawer,
-                drawerActive = drawerActive,
-                scope = scope,
+                params = screenParams,
                 dockListState = dockListState
             )
         }
@@ -107,15 +110,7 @@ fun AppNavHost(
                 )
             }
         ) {
-            ManageServicesScreen(
-                navController = navController,
-                viewModel = viewModel,
-                uiState = uiState,
-                darkTheme = darkTheme,
-                onOpenDrawer = onOpenDrawer,
-                drawerActive = drawerActive,
-                scope = scope
-            )
+            ManageServicesScreen(params = screenParams)
         }
 
         composable(
@@ -133,15 +128,7 @@ fun AppNavHost(
                 )
             }
         ) {
-            SettingsScreen(
-                navController = navController,
-                viewModel = viewModel,
-                uiState = uiState,
-                darkTheme = darkTheme,
-                onOpenDrawer = onOpenDrawer,
-                drawerActive = drawerActive,
-                scope = scope
-            )
+            SettingsScreen(params = screenParams)
         }
     }
 }

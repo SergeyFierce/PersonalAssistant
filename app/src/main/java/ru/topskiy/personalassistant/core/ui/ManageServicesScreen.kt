@@ -64,8 +64,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import kotlinx.coroutines.CoroutineScope
 import ru.topskiy.personalassistant.core.model.AppService
 import ru.topskiy.personalassistant.core.model.ServiceCategory
 import ru.topskiy.personalassistant.R
@@ -262,19 +260,11 @@ private enum class ServiceCatalogViewMode { LIST, GRID }
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageServicesScreen(
-    navController: NavHostController,
-    viewModel: AppStateViewModel,
-    uiState: AppStateUiState,
-    darkTheme: Boolean,
-    onOpenDrawer: () -> Unit,
-    drawerActive: Boolean,
-    scope: CoroutineScope
-) {
-    val loadedViewMode by viewModel.loadedCatalogViewMode.collectAsStateWithLifecycle()
+fun ManageServicesScreen(params: ScreenParams) {
+    val loadedViewMode by params.viewModel.loadedCatalogViewMode.collectAsStateWithLifecycle()
 
-    BackHandler(enabled = !drawerActive) {
-        navController.popBackStack()
+    BackHandler(enabled = !params.drawerActive) {
+        params.navController.popBackStack()
     }
 
     Scaffold(
@@ -284,7 +274,7 @@ fun ManageServicesScreen(
                     Column {
                         Text(stringResource(R.string.manage_services_title))
                         Text(
-                            text = stringResource(R.string.enabled_count, uiState.enabledServices.size),
+                            text = stringResource(R.string.enabled_count, params.uiState.enabledServices.size),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.85f)
                         )
@@ -307,7 +297,7 @@ fun ManageServicesScreen(
                         label = "view_toggle_scale"
                     )
                     IconButton(
-                        onClick = { viewModel.setServicesCatalogListView(loadedViewMode != true) },
+                        onClick = { params.viewModel.setServicesCatalogListView(loadedViewMode != true) },
                         interactionSource = viewToggleInteractionSource,
                         modifier = Modifier.graphicsLayer {
                             scaleX = viewToggleScale
@@ -339,24 +329,24 @@ fun ManageServicesScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { params.navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (darkTheme) TopAppBarDark else TopAppBarLight,
+                    containerColor = if (params.darkTheme) TopAppBarDark else TopAppBarLight,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White,
                     actionIconContentColor = Color.White
-                ),
-                modifier = Modifier.drawerOpenGestureInTopBar(onOpenDrawer)
+                )
             )
         }
     ) { innerPadding ->
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (darkTheme) CatalogGroupedBgDark else CatalogGroupedBgLight)
+                .drawerOpenGestureOnContent(params.onOpenDrawer)
+                .background(if (params.darkTheme) CatalogGroupedBgDark else CatalogGroupedBgLight)
                 .padding(innerPadding)
         ) {
             val columnCount = ((maxWidth - horizontalInsetDp * 2) / minServiceCardWidthDp)
@@ -390,9 +380,9 @@ fun ManageServicesScreen(
                                     )
                             ) {
                                 ServiceCatalogListView(
-                                    enabledIds = uiState.enabledServices,
-                                    onToggle = { id, checked -> viewModel.toggleService(id, checked) },
-                                    darkTheme = darkTheme
+                                    enabledIds = params.uiState.enabledServices,
+                                    onToggle = { id, checked -> params.viewModel.toggleService(id, checked) },
+                                    darkTheme = params.darkTheme
                                 )
                             }
                         }
@@ -410,15 +400,15 @@ fun ManageServicesScreen(
                             ) {
                                 ServiceRegistry.groupedByCategory.forEach { (category, services) ->
                                     item(key = category) {
-                                        ServiceCatalogSectionHeader(stringResource(category.titleResId), darkTheme)
+                                        ServiceCatalogSectionHeader(stringResource(category.titleResId), params.darkTheme)
                                     }
                                     item(key = "grid_${category.name}") {
                                         ServiceCatalogGrid(
                                             services = services,
                                             columnCount = columnCount,
-                                            enabledIds = uiState.enabledServices,
-                                            onToggle = { id, checked -> viewModel.toggleService(id, checked) },
-                                            darkTheme = darkTheme
+                                            enabledIds = params.uiState.enabledServices,
+                                            onToggle = { id, checked -> params.viewModel.toggleService(id, checked) },
+                                            darkTheme = params.darkTheme
                                         )
                                     }
                                     item(key = "spacer_${category.name}") {

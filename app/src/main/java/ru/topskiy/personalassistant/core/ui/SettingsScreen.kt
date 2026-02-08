@@ -32,8 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
-import kotlinx.coroutines.CoroutineScope
 import ru.topskiy.personalassistant.R
 import ru.topskiy.personalassistant.ui.theme.ScreenBackgroundDark
 import ru.topskiy.personalassistant.ui.theme.ScreenBackgroundLight
@@ -42,24 +40,17 @@ import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
-    navController: NavHostController,
-    viewModel: AppStateViewModel,
-    uiState: AppStateUiState,
-    darkTheme: Boolean,
-    onOpenDrawer: () -> Unit,
-    drawerActive: Boolean,
-    scope: CoroutineScope
-) {
-    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+fun SettingsScreen(params: ScreenParams) {
+    val themeMode by params.viewModel.themeMode.collectAsStateWithLifecycle()
+    // Только «Светлая» и «Тёмная»; при themeMode == "system" показываем выбранной текущую системную тему
+    val effectiveThemeSelection = if (themeMode == "system") if (params.darkTheme) "dark" else "light" else themeMode
     val themeOptions = listOf(
-        "system" to R.string.theme_system,
         "light" to R.string.theme_light,
         "dark" to R.string.theme_dark
     )
 
-    BackHandler(enabled = !drawerActive) {
-        navController.popBackStack()
+    BackHandler(enabled = !params.drawerActive) {
+        params.navController.popBackStack()
     }
 
     Scaffold(
@@ -67,24 +58,24 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { params.navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (darkTheme) TopAppBarDark else TopAppBarLight,
+                    containerColor = if (params.darkTheme) TopAppBarDark else TopAppBarLight,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White,
                     actionIconContentColor = Color.White
                 ),
-                modifier = Modifier.drawerOpenGestureInTopBar(onOpenDrawer)
             )
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (darkTheme) ScreenBackgroundDark else ScreenBackgroundLight)
+                .drawerOpenGestureOnContent(params.onOpenDrawer)
+                .background(if (params.darkTheme) ScreenBackgroundDark else ScreenBackgroundLight)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
@@ -99,13 +90,13 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { viewModel.setTheme(value) }
+                        .clickable { params.viewModel.setTheme(value) }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
-                        selected = themeMode == value,
-                        onClick = { viewModel.setTheme(value) }
+                        selected = effectiveThemeSelection == value,
+                        onClick = { params.viewModel.setTheme(value) }
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(text = stringResource(label), style = MaterialTheme.typography.bodyLarge)

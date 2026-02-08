@@ -36,9 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import androidx.compose.foundation.lazy.LazyListState
-import kotlinx.coroutines.CoroutineScope
 import ru.topskiy.personalassistant.R
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
@@ -50,15 +48,11 @@ import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServicesMainScreen(
-    navController: NavHostController,
-    viewModel: AppStateViewModel,
-    uiState: AppStateUiState,
-    darkTheme: Boolean,
-    onOpenDrawer: () -> Unit,
-    drawerActive: Boolean,
-    scope: CoroutineScope,
+    params: ScreenParams,
     dockListState: LazyListState
 ) {
+    val uiState = params.uiState
+    val viewModel = params.viewModel
     val enabled = uiState.enabledServices
     val homeServiceId = uiState.homeServiceId()
     val currentServiceId = remember(uiState) {
@@ -73,7 +67,7 @@ fun ServicesMainScreen(
     val context = LocalContext.current
     val pressAgainToExitMessage = stringResource(R.string.press_again_to_exit)
 
-    BackHandler(enabled = !drawerActive) {
+    BackHandler(enabled = !params.drawerActive) {
         if (currentServiceId == homeServiceId) {
             val now = System.currentTimeMillis()
             if (now - lastBackPressTime < 2000L) {
@@ -83,7 +77,7 @@ fun ServicesMainScreen(
                 Toast.makeText(context, pressAgainToExitMessage, Toast.LENGTH_SHORT).show()
             }
         } else {
-            viewModel.setLastService(homeServiceId)
+            params.viewModel.setLastService(homeServiceId)
         }
     }
 
@@ -118,17 +112,16 @@ fun ServicesMainScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
+                    IconButton(onClick = params.onOpenDrawer) {
                         Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.menu))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (darkTheme) TopAppBarDark else TopAppBarLight,
+                    containerColor = if (params.darkTheme) TopAppBarDark else TopAppBarLight,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White,
                     actionIconContentColor = Color.White
                 ),
-                modifier = Modifier.drawerOpenGestureInTopBar(onOpenDrawer)
             )
         },
         bottomBar = {
@@ -136,7 +129,7 @@ fun ServicesMainScreen(
                 DockBar(
                     dockServices = dockServices,
                     currentServiceId = currentServiceId,
-                    onSelectService = { id -> viewModel.setLastService(id) },
+                    onSelectService = { id -> params.viewModel.setLastService(id) },
                     dockListState = dockListState
                 )
             }
@@ -145,7 +138,8 @@ fun ServicesMainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (darkTheme) ScreenBackgroundDark else ScreenBackgroundLight)
+                .drawerOpenGestureOnContent(params.onOpenDrawer)
+                .background(if (params.darkTheme) ScreenBackgroundDark else ScreenBackgroundLight)
                 .padding(16.dp)
                 .padding(innerPadding),
             contentAlignment = Alignment.Center

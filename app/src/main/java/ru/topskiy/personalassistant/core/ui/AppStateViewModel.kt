@@ -1,5 +1,6 @@
 package ru.topskiy.personalassistant.core.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -139,6 +140,23 @@ class AppStateViewModel @Inject constructor(
         }
     }
 
+    /** Сохраняет результат онбординга в DataStore (все три записи подряд). Вызывать перед навигацией с онбординга. */
+    suspend fun completeOnboarding(selectedServices: Set<ServiceId>, firstService: ServiceId): Result<Unit> {
+        settingsRepository.setEnabledServices(selectedServices).onFailure {
+            _messageEvent.emit(R.string.settings_save_error)
+            return Result.failure(it)
+        }
+        settingsRepository.setOnboardingDone(true).onFailure {
+            _messageEvent.emit(R.string.settings_save_error)
+            return Result.failure(it)
+        }
+        settingsRepository.setLastService(firstService).onFailure {
+            _messageEvent.emit(R.string.settings_save_error)
+            return Result.failure(it)
+        }
+        return Result.success(Unit)
+    }
+
     fun setTheme(mode: String) {
         viewModelScope.launch {
             settingsRepository.setTheme(mode).onFailure {
@@ -155,7 +173,8 @@ class AppStateViewModel @Inject constructor(
             lastService = null,
             onboardingDone = false
         )
-        val s = settingsRepository.getInitialSettings().getOrElse {
+        val s = settingsRepository.getInitialSettings().getOrElse { e ->
+            Log.e("AppStateViewModel", "getInitialState: load failed, using defaults", e)
             _messageEvent.emit(R.string.settings_load_error)
             defaultSettings
         }

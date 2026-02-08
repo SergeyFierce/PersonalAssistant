@@ -1,6 +1,7 @@
 package ru.topskiy.personalassistant.core.datastore
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -41,12 +42,17 @@ private fun String.toServiceIdOrNull(): ServiceId? = try {
 
 private fun Set<String>.toServiceIdSet(): Set<ServiceId> = mapNotNull { it.toServiceIdOrNull() }.toSet()
 
+private const val TAG = "SettingsRepository"
+
 class SettingsRepository(context: Context) {
 
     private val dataStore = context.settingsDataStore
 
     private val dataStoreFlow = dataStore.data
-        .catch { _ -> emit(emptyPreferences()) }
+        .catch { e ->
+            Log.e(TAG, "DataStore flow error", e)
+            emit(emptyPreferences())
+        }
 
     val enabledServicesFlow: Flow<Set<ServiceId>> = dataStoreFlow.map { preferences ->
         val raw = preferences[ENABLED_SERVICES_KEY]
@@ -73,16 +79,17 @@ class SettingsRepository(context: Context) {
         preferences[THEME_KEY] ?: "system"
     }
 
-    /** true = вид списком, false = вид карточками. По умолчанию карточки. */
+    /** true = вид списком, false = вид карточками. По умолчанию список. */
     val servicesCatalogListViewFlow: Flow<Boolean> = dataStoreFlow.map { preferences ->
-        preferences[SERVICES_CATALOG_LIST_VIEW_KEY] ?: false
+        preferences[SERVICES_CATALOG_LIST_VIEW_KEY] ?: true
     }
 
     suspend fun setServicesCatalogListView(listView: Boolean): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             preferences[SERVICES_CATALOG_LIST_VIEW_KEY] = listView
         }
-    }
+        Unit
+    }.also { it.onFailure { e -> Log.e(TAG, "setServicesCatalogListView failed", e) } }
 
     suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit> = runCatching {
         if (set.isEmpty()) return@runCatching
@@ -93,7 +100,8 @@ class SettingsRepository(context: Context) {
                 preferences.remove(FAVORITE_SERVICE_KEY)
             }
         }
-    }
+        Unit
+    }.also { it.onFailure { e -> Log.e(TAG, "setEnabledServices failed", e) } }
 
     suspend fun setFavorite(value: ServiceId?): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
@@ -108,7 +116,8 @@ class SettingsRepository(context: Context) {
                 else -> preferences.remove(FAVORITE_SERVICE_KEY)
             }
         }
-    }
+        Unit
+    }.also { it.onFailure { e -> Log.e(TAG, "setFavorite failed", e) } }
 
     suspend fun setLastService(value: ServiceId?): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
@@ -118,20 +127,23 @@ class SettingsRepository(context: Context) {
                 preferences.remove(LAST_SERVICE_KEY)
             }
         }
-    }
+        Unit
+    }.also { it.onFailure { e -> Log.e(TAG, "setLastService failed", e) } }
 
     suspend fun setOnboardingDone(done: Boolean): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             preferences[ONBOARDING_DONE_KEY] = done
         }
-    }
+        Unit
+    }.also { it.onFailure { e -> Log.e(TAG, "setOnboardingDone failed", e) } }
 
     suspend fun setTheme(mode: String): Result<Unit> = runCatching {
         if (mode !in listOf("dark", "light", "system")) return@runCatching
         dataStore.edit { preferences ->
             preferences[THEME_KEY] = mode
         }
-    }
+        Unit
+    }.also { it.onFailure { e -> Log.e(TAG, "setTheme failed", e) } }
 
     /** Читает сохранённые настройки один раз (для корректного старта без гонки с stateIn). При ошибке — fallback к дефолтам. */
     suspend fun getInitialSettings(): Result<InitialSettings> = runCatching {
@@ -147,5 +159,5 @@ class SettingsRepository(context: Context) {
             lastService = prefs[LAST_SERVICE_KEY]?.toServiceIdOrNull(),
             onboardingDone = prefs[ONBOARDING_DONE_KEY] ?: false
         )
-    }
+    }.also { it.onFailure { e -> Log.e(TAG, "getInitialSettings failed", e) } }
 }

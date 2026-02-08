@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import ru.topskiy.personalassistant.R
+import kotlinx.coroutines.launch
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
 
@@ -40,6 +42,8 @@ fun OnboardingScreen(
     viewModel: AppStateViewModel
 ) {
     var selectedServices by remember { mutableStateOf(setOf<ServiceId>()) }
+    var isSaving by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -137,20 +141,24 @@ fun OnboardingScreen(
                 val firstSelected = ServiceRegistry.all
                     .firstOrNull { it.id in selectedServices }
                     ?.id
-                if (firstSelected != null) {
-                    viewModel.setEnabledServicesDirectly(selectedServices)
-                    viewModel.setOnboardingDone(true)
-                    viewModel.setLastService(firstSelected)
-                    navController.navigate(BOOTSTRAP_ROUTE) {
-                        popUpTo(ONBOARDING_ROUTE) { inclusive = true }
-                        launchSingleTop = true
+                if (firstSelected != null && !isSaving) {
+                    isSaving = true
+                    scope.launch {
+                        viewModel.completeOnboarding(selectedServices, firstSelected)
+                            .onSuccess {
+                                navController.navigate(MAIN_ROUTE) {
+                                    popUpTo(ONBOARDING_ROUTE) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                            .onFailure { isSaving = false }
                     }
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            enabled = selectedServices.isNotEmpty()
+            enabled = selectedServices.isNotEmpty() && !isSaving
         ) {
             Text(
                 text = stringResource(R.string.onboarding_start),

@@ -7,6 +7,22 @@ import androidx.compose.ui.unit.dp
 
 internal const val DRAWER_DRAG_THRESHOLD_PX = 40f
 
+/** Жест открытия drawer: свайп слева направо. Вешать на область контента (не на TopAppBar). */
+internal fun Modifier.drawerOpenGestureOnContent(onOpenDrawer: () -> Unit): Modifier = this.then(
+    Modifier.pointerInput(Unit) {
+        val edgePx = with(density) { 64.dp.toPx() }
+        var dragStartX = 0f
+        detectHorizontalDragGestures(
+            onDragStart = { offset -> dragStartX = offset.x },
+            onHorizontalDrag = { _, dragAmount ->
+                if (dragStartX <= edgePx && dragAmount > DRAWER_DRAG_THRESHOLD_PX) {
+                    onOpenDrawer()
+                }
+            }
+        )
+    }
+)
+
 internal fun Modifier.drawerOpenGestureInTopBar(onOpenDrawer: () -> Unit): Modifier = this.then(
     Modifier.pointerInput(Unit) {
         val edgePx = with(density) { 64.dp.toPx() }
