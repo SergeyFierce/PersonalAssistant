@@ -45,6 +45,10 @@ import androidx.compose.ui.unit.dp
 import ru.topskiy.personalassistant.core.model.AppService
 import ru.topskiy.personalassistant.core.model.ServiceId
 
+private val DOCK_ITEM_WIDTH_DP = 84.dp
+private val DOCK_ITEM_SPACING_DP = 12.dp
+private val DOCK_EDGE_PADDING_DP = 22.dp
+
 @Composable
 fun DockBar(
     dockServices: List<AppService>,
@@ -55,10 +59,6 @@ fun DockBar(
     val cs = MaterialTheme.colorScheme
     val n = dockServices.size
     if (n <= 1) return
-
-    val itemWidth = 84.dp
-    val itemSpacing = 12.dp
-    val dockItemFromTapeEdge = 22.dp
 
     Box(
         modifier = Modifier
@@ -96,7 +96,7 @@ fun DockBar(
                             .background(cs.surface.copy(alpha = 0.70f))
                     ) {
                         val density = androidx.compose.ui.platform.LocalDensity.current
-                        val itemWidthPx = with(density) { itemWidth.toPx() }
+                        val itemWidthPx = with(density) { DOCK_ITEM_WIDTH_DP.toPx() }
                         var viewportWidthPx by remember { mutableStateOf(0f) }
 
                         LaunchedEffect(currentServiceId, dockServices, viewportWidthPx) {
@@ -112,12 +112,12 @@ fun DockBar(
                                 .padding(horizontal = 0.dp, vertical = 10.dp)
                                 .onSizeChanged { viewportWidthPx = it.width.toFloat() },
                             state = dockListState,
-                            contentPadding = PaddingValues(horizontal = dockItemFromTapeEdge),
-                            horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+                            contentPadding = PaddingValues(horizontal = DOCK_EDGE_PADDING_DP),
+                            horizontalArrangement = Arrangement.spacedBy(DOCK_ITEM_SPACING_DP),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             items(dockServices, key = { it.id }) { service ->
-                                DockItem(service, service.id == currentServiceId, itemWidth) {
+                                DockItem(service, service.id == currentServiceId, DOCK_ITEM_WIDTH_DP) {
                                     onSelectService(service.id)
                                 }
                             }

@@ -14,16 +14,35 @@ import androidx.compose.material.icons.outlined.Subscriptions
 
 /**
  * Единый реестр сервисов приложения — один источник истины.
- * Порядок отображения в UI задаётся только списком [displayOrder].
  *
- * Как добавить новый сервис:
- * 1. Добавьте новый идентификатор в [ServiceId].
- * 2. Опишите сервис в [servicesById] (titleResId, icon, category, route).
- * 3. Добавьте идентификатор в [displayOrder] в нужное место (это определит порядок в док-баре, каталоге, онбординге и др. экранах).
+ * **Порядок отображения** задаётся только здесь — списком [displayOrder]. Док-бар, каталог,
+ * онбординг и остальные экраны используют [all] и [groupedByCategory], поэтому порядок менять
+ * нигде больше не нужно.
+ *
+ * ---
+ * **Как добавить новый сервис:**
+ *
+ * 1. **ServiceId** — добавить новое значение enum (например, `NEW_SERVICE`). Порядок значений
+ *    в enum на отображение не влияет.
+ *
+ * 2. **res/values/strings.xml** — добавить строку для названия (например, `service_new_service`).
+ *
+ * 3. **servicesById** — добавить запись: `ServiceId.NEW_SERVICE to AppService(...)` с полями:
+ *    - id — тот же ServiceId
+ *    - titleResId — R.string.service_new_service
+ *    - route — строка маршрута, например "service/new_service"
+ *    - icon — Icons.Outlined.* (при необходимости добавить import)
+ *    - category — одна из [ServiceCategory]
+ *
+ * 4. **displayOrder** — вставить `ServiceId.NEW_SERVICE` в нужную позицию списка. Это единственное
+ *    место, где задаётся порядок сервисов во всём приложении.
  */
 object ServiceRegistry {
 
-    /** Явный порядок отображения сервисов во всех экранах (док, каталог, онбординг). Не зависит от порядка enum [ServiceId]. */
+    /**
+     * Единственное место, задающее порядок сервисов (док, каталог, онбординг).
+     * Не зависит от порядка enum [ServiceId].
+     */
     val displayOrder: List<ServiceId> = listOf(
         ServiceId.DEALS,
         ServiceId.NOTES,

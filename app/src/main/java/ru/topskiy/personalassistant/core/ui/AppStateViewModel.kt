@@ -20,6 +20,10 @@ import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
 import javax.inject.Inject
 
+/**
+ * Возвращает идентификатор сервиса, который считается «домашним» для текущего состояния.
+ * Приоритет: избранный сервис (если включён) → последний использованный (если включён) → первый из включённых по [ServiceRegistry.displayOrder]; при отсутствии включённых — [ServiceId.DEALS].
+ */
 fun AppStateUiState.homeServiceId(): ServiceId {
     val enabled = enabledServices
     favoriteService?.takeIf { it in enabled }?.let { return it }
@@ -27,6 +31,14 @@ fun AppStateUiState.homeServiceId(): ServiceId {
     return ServiceRegistry.all.firstOrNull { it.id in enabled }?.id ?: ServiceId.DEALS
 }
 
+/**
+ * Состояние приложения, собираемое из настроек (DataStore).
+ *
+ * @param enabledServices Множество включённых сервисов (минимум один).
+ * @param favoriteService Избранный сервис (открывается при запуске, если включён).
+ * @param lastService Последний открытый сервис (используется при отсутствии избранного).
+ * @param onboardingDone Пройден ли онбординг выбора сервисов.
+ */
 data class AppStateUiState(
     val enabledServices: Set<ServiceId>,
     val favoriteService: ServiceId?,
@@ -65,7 +77,7 @@ class AppStateViewModel @Inject constructor(
     val themeMode = settingsRepository.themeFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = "system"
+        initialValue = "light"
     )
 
     /** null = ещё не загружено (не рисовать каталог), true = список, false = карточки. */

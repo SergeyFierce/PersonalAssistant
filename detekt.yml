@@ -1,0 +1,44 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true
+
+style:
+  MagicNumber:
+    active: true
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreConstantDeclaration: true
+    ignoreEnums: true
+    ignoreNumbersInAnnotations: true
+    excludes: ["**/test/**", "**/androidTest/**", "**/ui/theme/Color.kt"]
+
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+
+  WildcardImport:
+    active: true
+
+  MagicString:
+    active: true
+
+  ReturnCount:
+    active: true
+
+  UnusedPrivateMember:
+    active: true
+
+  UnusedImports:
+    active: true
+

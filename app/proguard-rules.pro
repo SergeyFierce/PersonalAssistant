@@ -15,29 +15,43 @@
 -keepclasseswithmembers class * {
     @dagger.hilt.* <methods>;
 }
+-keep @dagger.hilt.InstallIn class *
+-keep @dagger.hilt.android.HiltAndroidApp class *
 -dontwarn dagger.hilt.**
 
 # ---------------------------------------------------------------------------
-# DataStore Preferences
+# DataStore Preferences (сериализация ключей и значений)
 # ---------------------------------------------------------------------------
 -keep class androidx.datastore.** { *; }
 -keepclassmembers class androidx.datastore.preferences.core.Preferences { *; }
+-keepclassmembers class androidx.datastore.preferences.core.Preferences$Builder { *; }
+-keep,allowobfuscation class androidx.datastore.preferences.protobuf.** { *; }
 
 # ---------------------------------------------------------------------------
-# Модели для DataStore/Preferences и сериализации (ServiceId по имени в Preferences)
+# Модели для DataStore и сериализации (ServiceId по имени в Preferences)
 # ---------------------------------------------------------------------------
-# Enum ServiceId сохраняется как .name и читается через valueOf() — нужны класс и константы
 -keep class ru.topskiy.personalassistant.core.model.ServiceId { *; }
 -keepclassmembers class ru.topskiy.personalassistant.core.model.ServiceId {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
-# InitialSettings — результат getInitialSettings(), используется при bootstrap
 -keep class ru.topskiy.personalassistant.core.datastore.InitialSettings { *; }
+-keep class ru.topskiy.personalassistant.core.datastore.SettingsRepository { *; }
+-keep class ru.topskiy.personalassistant.core.datastore.DataStoreSettingsRepository { *; }
 
 # ---------------------------------------------------------------------------
-# Остальное (опционально для отладки)
+# Firebase Crashlytics (читаемые стектрейсы и загрузка mapping)
 # ---------------------------------------------------------------------------
-# Uncomment this to preserve the line number information for debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-#-renamesourcefileattribute SourceFile
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+-keep public class * extends java.lang.Exception
+-keep class com.google.firebase.crashlytics.** { *; }
+-dontwarn com.google.firebase.crashlytics.**
+
+# ---------------------------------------------------------------------------
+# Firebase Analytics
+# ---------------------------------------------------------------------------
+-keep class com.google.firebase.analytics.** { *; }
+-keep class com.google.android.gms.measurement.** { *; }
+-dontwarn com.google.firebase.analytics.**
+-dontwarn com.google.android.gms.measurement.**

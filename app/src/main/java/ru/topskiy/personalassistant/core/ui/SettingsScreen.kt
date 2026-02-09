@@ -42,8 +42,6 @@ import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 @Composable
 fun SettingsScreen(params: ScreenParams) {
     val themeMode by params.viewModel.themeMode.collectAsStateWithLifecycle()
-    // Только «Светлая» и «Тёмная»; при themeMode == "system" показываем выбранной текущую системную тему
-    val effectiveThemeSelection = if (themeMode == "system") if (params.darkTheme) "dark" else "light" else themeMode
     val themeOptions = listOf(
         "light" to R.string.theme_light,
         "dark" to R.string.theme_dark
@@ -95,7 +93,7 @@ fun SettingsScreen(params: ScreenParams) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
-                        selected = effectiveThemeSelection == value,
+                        selected = themeMode == value,
                         onClick = { params.viewModel.setTheme(value) }
                     )
                     Spacer(modifier = Modifier.width(12.dp))

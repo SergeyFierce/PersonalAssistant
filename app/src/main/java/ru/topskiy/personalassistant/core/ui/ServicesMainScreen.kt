@@ -4,13 +4,6 @@ import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,6 +38,8 @@ import ru.topskiy.personalassistant.ui.theme.ScreenBackgroundLight
 import ru.topskiy.personalassistant.ui.theme.TopAppBarDark
 import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 
+private const val PRESS_AGAIN_TO_EXIT_INTERVAL_MS = 2000L
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServicesMainScreen(
@@ -70,7 +65,7 @@ fun ServicesMainScreen(
     BackHandler(enabled = !params.drawerActive) {
         if (currentServiceId == homeServiceId) {
             val now = System.currentTimeMillis()
-            if (now - lastBackPressTime < 2000L) {
+            if (now - lastBackPressTime < PRESS_AGAIN_TO_EXIT_INTERVAL_MS) {
                 (context as? Activity)?.finish()
             } else {
                 lastBackPressTime = now
@@ -92,19 +87,7 @@ fun ServicesMainScreen(
                         transitionSpec = {
                             val initialIndex = dockServices.indexOfFirst { it.id == initialState }
                             val targetIndex = dockServices.indexOfFirst { it.id == targetState }
-                            val forward = targetIndex > initialIndex
-                            val enterSlide = if (forward) {
-                                slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing))
-                            } else {
-                                slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing))
-                            }
-                            val exitSlide = if (forward) {
-                                slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing))
-                            } else {
-                                slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing))
-                            }
-                            (enterSlide + fadeIn(animationSpec = tween(200))) togetherWith
-                                (exitSlide + fadeOut(animationSpec = tween(200)))
+                            horizontalSlideWithFadeContentTransform(forward = targetIndex > initialIndex)
                         },
                         label = "service_title"
                     ) { serviceId ->
@@ -149,19 +132,7 @@ fun ServicesMainScreen(
                 transitionSpec = {
                     val initialIndex = dockServices.indexOfFirst { it.id == initialState }
                     val targetIndex = dockServices.indexOfFirst { it.id == targetState }
-                    val forward = targetIndex > initialIndex
-                    val enterSlide = if (forward) {
-                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing))
-                    } else {
-                        slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing))
-                    }
-                    val exitSlide = if (forward) {
-                        slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing))
-                    } else {
-                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing))
-                    }
-                    (enterSlide + fadeIn(animationSpec = tween(200))) togetherWith
-                        (exitSlide + fadeOut(animationSpec = tween(200)))
+                    horizontalSlideWithFadeContentTransform(forward = targetIndex > initialIndex)
                 },
                 label = "service_content"
             ) { serviceId ->
