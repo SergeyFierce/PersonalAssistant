@@ -14,11 +14,15 @@ Android‑приложение‑органайзер с набором серв
 | **ui** | `core/ui/` | Экранная логика и навигация: ViewModel (`AppStateViewModel`), экраны (Bootstrap, Onboarding, Main, ManageServices, Settings), док-бар, drawer, общие параметры `ScreenParams`. |
 | **theme** | `ui/theme/` | Compose-темы, цвета, типографика. |
 
+Каталог сервисов (экран «Управление сервисами») вынесен в отдельный файл `core/ui/ServiceCatalogComponents.kt`: переиспользуемые компоненты — карточка сервиса, список по категориям, сетка карточек, переключатель с `testTag` для UI-тестов.
+
 **ServiceRegistry** — единственный источник истины по сервисам. Порядок отображения задаётся только списком `displayOrder` в `ServiceRegistry`; док, каталог и онбординг используют `all` и `groupedByCategory`. Добавление сервиса: новое значение в enum `ServiceId`, строка в `strings.xml`, запись в `servicesById` и позиция в `displayOrder`.
 
 **Навигация:** стартовый маршрут — `bootstrap`. `BootstrapScreen` читает `getInitialSettings()` и переходит на `onboarding` (если онбординг не пройден) или `main`. Далее доступны маршруты `main`, `manage_services`, `settings`; переход в боковое меню (drawer) и назад через `NavController`.
 
 **Где хранятся настройки:** DataStore Preferences, файл `settings` (имя задаётся в `preferencesDataStore(name = "settings")`). Ключи: включённые сервисы, избранный/последний сервис, флаг онбординга, тема (light/dark), режим каталога (список/сетка). При первом запуске тема один раз инициализируется по системной в `PersonalAssistantApp.onCreate()`.
+
+**Тесты:** unit-тесты на JVM покрывают `ServiceRegistry`, `SettingsRepository` и `AppStateViewModel`; instrumented-тесты — старт приложения, доступ к настройкам через Hilt и ключевые UI-сценарии (онбординг, главная, управление сервисами, настройки).
 
 ### Технологический стек
 - **Язык**: Kotlin

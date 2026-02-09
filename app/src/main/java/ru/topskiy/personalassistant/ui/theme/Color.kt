@@ -42,3 +42,14 @@ val CatalogListDividerDark = Color(0xFF38383A)
 // App UI: Switch (catalog)
 val SwitchTrackCheckedGreen = Color(0xFF34C759)
 val SwitchThumbChecked = Color.White
+
+// Onboarding — iOS-style
+val OnboardingBackgroundLight = Color(0xFFF2F2F7)
+val OnboardingBackgroundDark = Color(0xFF000000)
+val OnboardingCardLight = Color(0xFFFFFFFF)
+val OnboardingCardDark = Color(0xFF1C1C1E)
+val OnboardingSeparatorLight = Color(0xFFC6C6C8).copy(alpha = 0.35f)
+val OnboardingSeparatorDark = Color(0xFF38383A)
+val OnboardingSecondaryTextLight = Color(0xFF6D6D72)
+val OnboardingSecondaryTextDark = Color(0xFF8E8E93)
+val OnboardingTintBlue = Color(0xFF007AFF)

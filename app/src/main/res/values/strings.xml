@@ -16,10 +16,10 @@
     <string name="theme_switch_to_dark">Включить тёмную тему</string>
 
     <!-- Onboarding -->
+    <string name="onboarding_welcome">Добро пожаловать!</string>
+    <string name="onboarding_welcome_subtitle">Всё важное — в одном приложении.</string>
     <string name="onboarding_title">С чего начнём?</string>
-    <string name="onboarding_subtitle">Выберите сервисы, которые будут доступны в приложении. Это можно изменить позже.</string>
-    <string name="onboarding_hint_title">Подсказка</string>
-    <string name="onboarding_hint_text">Вы можете выбрать избранный сервис — он будет открываться при запуске приложения.\nЕсли избранный сервис не выбран, приложение откроется на последнем использованном сервисе.</string>
+    <string name="onboarding_subtitle">Выберите сервисы, которые будут доступны. Список можно изменить в настройках.</string>
     <string name="onboarding_start">Начать</string>
 
     <!-- Manage services -->
