@@ -15,6 +15,11 @@ import androidx.compose.material.icons.outlined.Subscriptions
 /**
  * Единый реестр сервисов приложения — один источник истины.
  * Порядок отображения в UI задаётся только списком [displayOrder].
+ *
+ * Как добавить новый сервис:
+ * 1. Добавьте новый идентификатор в [ServiceId].
+ * 2. Опишите сервис в [servicesById] (titleResId, icon, category, route).
+ * 3. Добавьте идентификатор в [displayOrder] в нужное место (это определит порядок в док-баре, каталоге, онбординге и др. экранах).
  */
 object ServiceRegistry {
 

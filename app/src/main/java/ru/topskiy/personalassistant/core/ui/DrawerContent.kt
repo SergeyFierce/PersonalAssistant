@@ -52,7 +52,7 @@ fun DrawerContent(
     uiState: AppStateUiState,
     darkTheme: Boolean,
     onToggleTheme: () -> Unit,
-    onCloseDrawerAndThen: (afterClose: () -> Unit) -> Unit
+    onItemClickThenCloseDrawer: (afterClose: () -> Unit) -> Unit
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -143,7 +143,7 @@ fun DrawerContent(
                                 unselectedTextColor = drawerItemColor
                             ),
                             onClick = {
-                                onCloseDrawerAndThen {
+                                onItemClickThenCloseDrawer {
                                     if (currentRoute != MANAGE_SERVICES_ROUTE) {
                                         navController.navigate(MANAGE_SERVICES_ROUTE) { launchSingleTop = true }
                                     }
@@ -161,7 +161,7 @@ fun DrawerContent(
                                 unselectedTextColor = drawerItemColor
                             ),
                             onClick = {
-                                onCloseDrawerAndThen {
+                                onItemClickThenCloseDrawer {
                                     if (currentRoute != SETTINGS_ROUTE) {
                                         navController.navigate(SETTINGS_ROUTE) { launchSingleTop = true }
                                     }

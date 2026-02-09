@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
                                 uiState = uiState,
                                 darkTheme = darkTheme,
                                 onToggleTheme = { viewModel.setTheme(if (darkTheme) "light" else "dark") },
-                                onCloseDrawerAndThen = { afterClose ->
+                                onItemClickThenCloseDrawer = { afterClose ->
                                     afterClose()
                                     scope.launch { drawerState.close() }
                                 }
