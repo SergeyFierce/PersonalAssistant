@@ -11,6 +11,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,12 +27,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -52,12 +57,15 @@ import ru.topskiy.personalassistant.core.model.AppService
 import ru.topskiy.personalassistant.core.model.ServiceCategory
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
+import ru.topskiy.personalassistant.R
 import ru.topskiy.personalassistant.ui.theme.CatalogCardBgDark
 import ru.topskiy.personalassistant.ui.theme.CatalogCardBgLight
 import ru.topskiy.personalassistant.ui.theme.CatalogCardBorderDark
 import ru.topskiy.personalassistant.ui.theme.CatalogCardBorderLight
 import ru.topskiy.personalassistant.ui.theme.CatalogIconDark
 import ru.topskiy.personalassistant.ui.theme.CatalogIconLight
+import ru.topskiy.personalassistant.ui.theme.FavoriteStarEmpty
+import ru.topskiy.personalassistant.ui.theme.FavoriteStarYellow
 import ru.topskiy.personalassistant.ui.theme.CatalogListDividerDark
 import ru.topskiy.personalassistant.ui.theme.CatalogListDividerLight
 import ru.topskiy.personalassistant.ui.theme.CatalogSectionHeaderDark
@@ -88,12 +96,14 @@ fun ServiceCatalogSectionHeader(
     )
 }
 
-/** Одна строка списка: иконка, название, переключатель. */
+/** Одна строка списка: иконка, название и звёздочка избранного (рядом с названием), переключатель. */
 @Composable
 fun ServiceCatalogListRow(
     service: AppService,
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
+    isFavorite: Boolean,
+    onSetFavorite: (() -> Unit)?,
     darkTheme: Boolean
 ) {
     Row(
@@ -109,11 +119,31 @@ fun ServiceCatalogListRow(
             tint = if (darkTheme) CatalogIconDark else CatalogIconLight
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = stringResource(service.titleResId),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(service.titleResId),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            if (enabled && onSetFavorite != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
+                    contentDescription = stringResource(
+                        if (isFavorite) R.string.content_description_remove_favorite
+                        else R.string.content_description_set_favorite
+                    ),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clickable { onSetFavorite() }
+                        .padding(4.dp),
+                    tint = if (isFavorite) FavoriteStarYellow else FavoriteStarEmpty
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(4.dp))
         CatalogSwitch(
             checked = enabled,
             onCheckedChange = onToggle,
@@ -142,16 +172,20 @@ private fun CatalogSwitch(
     )
 }
 
-/** Карточка сервиса для сетки: иконка, название, переключатель. */
+/** Карточка сервиса для сетки: иконка, название и звёздочка избранного (рядом с названием), переключатель. */
 @Composable
 fun ServiceCatalogCard(
     service: AppService,
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
+    isFavorite: Boolean,
+    onSetFavorite: (() -> Unit)?,
     darkTheme: Boolean
 ) {
     val cardBg = if (darkTheme) CatalogCardBgDark else CatalogCardBgLight
     val borderColor = if (darkTheme) CatalogCardBorderDark else CatalogCardBorderLight
+    val iconTint = if (darkTheme) CatalogIconDark else CatalogIconLight
+    val starTint = if (isFavorite) FavoriteStarYellow else FavoriteStarEmpty
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -161,32 +195,53 @@ fun ServiceCatalogCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(0.5.dp, borderColor)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(CATALOG_CARD_INNER_PADDING_DP),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = service.icon,
-                contentDescription = stringResource(service.titleResId),
-                modifier = Modifier.size(28.dp),
-                tint = if (darkTheme) CatalogIconDark else CatalogIconLight
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = stringResource(service.titleResId),
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 2,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            CatalogSwitch(
-                checked = enabled,
-                onCheckedChange = onToggle,
-                testTag = "service_${service.id}",
-                modifier = Modifier.size(width = 36.dp, height = 24.dp)
-            )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(CATALOG_CARD_INNER_PADDING_DP),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = service.icon,
+                    contentDescription = stringResource(service.titleResId),
+                    modifier = Modifier.size(28.dp),
+                    tint = iconTint
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = stringResource(service.titleResId),
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 2,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                CatalogSwitch(
+                    checked = enabled,
+                    onCheckedChange = onToggle,
+                    testTag = "service_${service.id}",
+                    modifier = Modifier.size(width = 36.dp, height = 24.dp)
+                )
+            }
+            if (enabled && onSetFavorite != null) {
+                IconButton(
+                    onClick = { onSetFavorite() },
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = cardBg,
+                        contentColor = starTint
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
+                        contentDescription = stringResource(
+                            if (isFavorite) R.string.content_description_remove_favorite
+                            else R.string.content_description_set_favorite
+                        ),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -195,7 +250,9 @@ fun ServiceCatalogCard(
 @Composable
 fun ServiceCatalogListView(
     enabledIds: Set<ServiceId>,
+    favoriteServiceId: ServiceId?,
     onToggle: (ServiceId, Boolean) -> Unit,
+    onSetFavorite: (ServiceId?) -> Unit,
     darkTheme: Boolean
 ) {
     val groupShape = RoundedCornerShape(CATALOG_CARD_CORNER_DP.dp)
@@ -225,10 +282,13 @@ fun ServiceCatalogListView(
                                 thickness = 0.5.dp
                             )
                         }
+                        val isFavorite = service.id == favoriteServiceId
                         ServiceCatalogListRow(
                             service = service,
                             enabled = service.id in enabledIds,
                             onToggle = { onToggle(service.id, it) },
+                            isFavorite = isFavorite,
+                            onSetFavorite = { onSetFavorite(if (isFavorite) null else service.id) },
                             darkTheme = darkTheme
                         )
                     }
@@ -245,7 +305,9 @@ fun ServiceCatalogGrid(
     services: List<AppService>,
     columnCount: Int,
     enabledIds: Set<ServiceId>,
+    favoriteServiceId: ServiceId?,
     onToggle: (ServiceId, Boolean) -> Unit,
+    onSetFavorite: (ServiceId?) -> Unit,
     darkTheme: Boolean
 ) {
     val rows = services.chunked(columnCount)
@@ -256,11 +318,14 @@ fun ServiceCatalogGrid(
                 horizontalArrangement = Arrangement.spacedBy(CATALOG_GRID_ROW_SPACING_DP)
             ) {
                 rowServices.forEach { service ->
+                    val isFavorite = service.id == favoriteServiceId
                     Box(modifier = Modifier.weight(1f)) {
                         ServiceCatalogCard(
                             service = service,
                             enabled = service.id in enabledIds,
                             onToggle = { onToggle(service.id, it) },
+                            isFavorite = isFavorite,
+                            onSetFavorite = { onSetFavorite(if (isFavorite) null else service.id) },
                             darkTheme = darkTheme
                         )
                     }

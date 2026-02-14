@@ -43,6 +43,20 @@ val CatalogListDividerDark = Color(0xFF38383A)
 val SwitchTrackCheckedGreen = Color(0xFF34C759)
 val SwitchThumbChecked = Color.White
 
+// DockBar: фон капсулы, бордер капсулы, выбранный и невыбранный сервис
+val DockBarBgDark = Color(0xFF2A282B)
+val DockBarBgLight = Color(0xFFFDFFFE)
+val DockBarBorderDark = Color.White.copy(alpha = 0.12f)
+val DockBarBorderLight = Color.Black.copy(alpha = 0.08f)
+val DockBarSelectedDark = Color(0xFF9C69E2)
+val DockBarSelectedLight = Color(0xFF1F8FE2)
+val DockBarUnselectedDark = Color(0xFFFFFFFF)
+val DockBarUnselectedLight = Color(0xFF000000)
+
+// Избранный сервис: пустая звезда — нейтральный цвет, выбранная — жёлтая
+val FavoriteStarEmpty = Color(0xFF8E8E93)
+val FavoriteStarYellow = Color(0xFFE6B800)
+
 // Onboarding — iOS-style
 val OnboardingBackgroundLight = Color(0xFFF2F2F7)
 val OnboardingBackgroundDark = Color(0xFF000000)

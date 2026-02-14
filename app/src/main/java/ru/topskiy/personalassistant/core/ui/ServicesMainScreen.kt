@@ -50,13 +50,15 @@ fun ServicesMainScreen(
     val viewModel = params.viewModel
     val enabled = uiState.enabledServices
     val homeServiceId = uiState.homeServiceId()
-    val currentServiceId = remember(uiState) {
-        val last = uiState.lastService
-        when {
-            last != null && last in enabled -> last
-            else -> homeServiceId
-        }
+    val initialServiceId = remember {
+        viewModel.getInitialServiceIdForMainScreen(
+            enabled,
+            uiState.favoriteService,
+            uiState.lastService,
+            homeServiceId
+        )
     }
+    var currentServiceId by remember { mutableStateOf(initialServiceId) }
 
     var lastBackPressTime by remember { mutableStateOf(0L) }
     val context = LocalContext.current
@@ -73,6 +75,7 @@ fun ServicesMainScreen(
             }
         } else {
             params.viewModel.setLastService(homeServiceId)
+            currentServiceId = homeServiceId
         }
     }
 
@@ -112,7 +115,12 @@ fun ServicesMainScreen(
                 DockBar(
                     dockServices = dockServices,
                     currentServiceId = currentServiceId,
-                    onSelectService = { id -> params.viewModel.setLastService(id) },
+                    favoriteServiceId = params.uiState.favoriteService,
+                    darkTheme = params.darkTheme,
+                    onSelectService = { id ->
+                        params.viewModel.setLastService(id)
+                        currentServiceId = id
+                    },
                     dockListState = dockListState
                 )
             }

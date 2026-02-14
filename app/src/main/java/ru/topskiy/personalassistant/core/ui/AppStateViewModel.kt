@@ -51,6 +51,13 @@ class AppStateViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
+    /**
+     * Главный экран уже показывался в этой сессии процесса (холодный старт уже был).
+     * При первом показе используем избранный (если есть), при возврате из Настроек/Сервисов — последний открытый.
+     */
+    var hasMainScreenBeenShownThisProcess: Boolean = false
+        private set
+
     val uiState = combine(
         settingsRepository.enabledServicesFlow,
         settingsRepository.favoriteServiceFlow,
@@ -120,6 +127,33 @@ class AppStateViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Возвращает сервис для отображения при показе главного экрана.
+     * При первом показе в сессии (после запуска/перезапуска приложения): избранный → последний → home.
+     * При возврате на главный (например из Настроек): последний открытый → избранный → home.
+     */
+    fun getInitialServiceIdForMainScreen(
+        enabled: Set<ServiceId>,
+        favorite: ServiceId?,
+        last: ServiceId?,
+        homeServiceId: ServiceId
+    ): ServiceId {
+        return if (!hasMainScreenBeenShownThisProcess) {
+            hasMainScreenBeenShownThisProcess = true
+            when {
+                favorite != null && favorite in enabled -> favorite
+                last != null && last in enabled -> last
+                else -> homeServiceId
+            }
+        } else {
+            when {
+                last != null && last in enabled -> last
+                favorite != null && favorite in enabled -> favorite
+                else -> homeServiceId
+            }
+        }
+    }
+
     fun setFavorite(serviceId: ServiceId?) {
         viewModelScope.launch {
             settingsRepository.setFavorite(serviceId).onFailure {
@@ -152,8 +186,12 @@ class AppStateViewModel @Inject constructor(
         }
     }
 
-    /** Сохраняет результат онбординга в DataStore (все три записи подряд). Вызывать перед навигацией с онбординга. */
-    suspend fun completeOnboarding(selectedServices: Set<ServiceId>, firstService: ServiceId): Result<Unit> {
+    /** Сохраняет результат онбординга в DataStore. Вызывать перед навигацией с онбординга. */
+    suspend fun completeOnboarding(
+        selectedServices: Set<ServiceId>,
+        firstService: ServiceId,
+        favoriteService: ServiceId? = null
+    ): Result<Unit> {
         settingsRepository.setEnabledServices(selectedServices).onFailure {
             _messageEvent.emit(R.string.settings_save_error)
             return Result.failure(it)
@@ -163,6 +201,12 @@ class AppStateViewModel @Inject constructor(
             return Result.failure(it)
         }
         settingsRepository.setLastService(firstService).onFailure {
+            _messageEvent.emit(R.string.settings_save_error)
+            return Result.failure(it)
+        }
+        settingsRepository.setFavorite(
+            if (favoriteService != null && favoriteService in selectedServices) favoriteService else null
+        ).onFailure {
             _messageEvent.emit(R.string.settings_save_error)
             return Result.failure(it)
         }

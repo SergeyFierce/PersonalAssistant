@@ -20,7 +20,23 @@
     <string name="onboarding_welcome_subtitle">Всё важное — в одном приложении.</string>
     <string name="onboarding_title">С чего начнём?</string>
     <string name="onboarding_subtitle">Выберите сервисы, которые будут доступны. Список можно изменить в настройках.</string>
+    <string name="onboarding_favorite_section_title">Открывать при запуске</string>
+    <string name="onboarding_select">Выбрать</string>
+    <string name="onboarding_selected_count">Выбрано: %d</string>
+    <string name="onboarding_services_hint">Выберите хотя бы один сервис</string>
+    <string name="onboarding_start_screen_hint">Стартовый экран: %s</string>
     <string name="onboarding_start">Начать</string>
+    <string name="onboarding_dialog_apply">Применить</string>
+    <string name="onboarding_reset">Сбросить</string>
+
+    <!-- Favorite service -->
+    <string name="favorite_service_explanation">При запуске приложения отображается избранный сервис (при его назначении) или последний использованный сервис (при отсутствии избранного). Назначение избранного сервиса осуществляется по желанию пользователя в разделе «Сервисы».</string>
+    <string name="favorite_service_label">Избранный сервис</string>
+    <string name="favorite_not_set">Не выбран</string>
+    <string name="favorite_set_to">Избранный: %s</string>
+    <string name="content_description_favorite_info">Подсказка об избранном сервисе</string>
+    <string name="content_description_set_favorite">Сделать избранным</string>
+    <string name="content_description_remove_favorite">Убрать из избранного</string>
 
     <!-- Manage services -->
     <string name="manage_services_title">Сервисы</string>

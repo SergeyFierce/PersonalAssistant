@@ -115,18 +115,33 @@ class AppStateViewModelTest {
     }
 
     @Test
-    fun `completeOnboarding writes enabled, onboardingDone and lastService`() = runTest {
+    fun `completeOnboarding writes enabled, onboardingDone, lastService and favorite`() = runTest {
         val repo = FakeSettingsRepository()
         val vm = AppStateViewModel(repo)
         val selected = setOf(ServiceId.DEALS, ServiceId.NOTES)
         val first = ServiceId.NOTES
+        val favorite = ServiceId.DEALS
 
-        val result = vm.completeOnboarding(selected, first)
+        val result = vm.completeOnboarding(selected, first, favorite)
 
         assertTrue(result.isSuccess)
         assertEquals(selected, repo.enabledFlow.value)
         assertTrue(repo.onboardingFlow.value)
         assertEquals(first, repo.lastFlow.value)
+        assertEquals(favorite, repo.favoriteFlow.value)
+    }
+
+    @Test
+    fun `completeOnboarding with null favorite clears favorite`() = runTest {
+        val repo = FakeSettingsRepository(favorite = ServiceId.DEALS)
+        val vm = AppStateViewModel(repo)
+        val selected = setOf(ServiceId.DEALS, ServiceId.NOTES)
+        val first = ServiceId.NOTES
+
+        val result = vm.completeOnboarding(selected, first, null)
+
+        assertTrue(result.isSuccess)
+        assertEquals(null, repo.favoriteFlow.value)
     }
 
     @Test
