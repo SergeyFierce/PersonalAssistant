@@ -11,6 +11,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -73,12 +75,17 @@ import ru.topskiy.personalassistant.ui.theme.CatalogSectionHeaderLight
 import ru.topskiy.personalassistant.ui.theme.SwitchThumbChecked
 import ru.topskiy.personalassistant.ui.theme.SwitchTrackCheckedGreen
 
-private const val CATALOG_CARD_CORNER_DP = 12f
+private const val CATALOG_CARD_CORNER_DP = 16f
 private val CATALOG_CARD_PADDING_DP = 4.dp
-private val CATALOG_CARD_INNER_PADDING_DP = 12.dp
+private val CATALOG_CARD_INNER_PADDING_DP = 16.dp
+private val CATALOG_CARD_ICON_SIZE_DP = 34.dp
+private val CATALOG_CARD_ICON_CIRCLE_SIZE_DP = 48.dp
+private val CATALOG_CARD_STAR_SIZE_DP = 24.dp
 private val CATALOG_LIST_ROW_START_INSET_DP = 56.dp
 private val CATALOG_LIST_ROW_PADDING_H = 16.dp
-private val CATALOG_LIST_ROW_PADDING_V = 12.dp
+private val CATALOG_LIST_ROW_PADDING_V = 10.dp
+private val CATALOG_LIST_ICON_CIRCLE_SIZE_DP = 40.dp
+private val CATALOG_LIST_ICON_SIZE_DP = 28.dp
 private val CATALOG_GRID_ROW_SPACING_DP = 8.dp
 
 /** Заголовок секции каталога сервисов (название категории). */
@@ -96,7 +103,7 @@ fun ServiceCatalogSectionHeader(
     )
 }
 
-/** Одна строка списка: иконка, название и звёздочка избранного (рядом с названием), переключатель. */
+/** Одна строка списка: иконка в круге (как в карточках), название, звёздочка избранного, переключатель. */
 @Composable
 fun ServiceCatalogListRow(
     service: AppService,
@@ -106,40 +113,55 @@ fun ServiceCatalogListRow(
     onSetFavorite: (() -> Unit)?,
     darkTheme: Boolean
 ) {
+    val iconTint = if (darkTheme) CatalogIconDark else CatalogIconLight
+    val starTint = if (isFavorite) FavoriteStarYellow else FavoriteStarEmpty
+    val iconCircleBg = if (darkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+    val contentAlpha = if (enabled) 1f else 0.5f
+    val starButtonBg = if (isFavorite) FavoriteStarYellow.copy(alpha = 0.15f) else (if (darkTheme) CatalogCardBgDark else CatalogCardBgLight)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = CATALOG_LIST_ROW_PADDING_H, vertical = CATALOG_LIST_ROW_PADDING_V),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = service.icon,
-            contentDescription = stringResource(service.titleResId),
-            modifier = Modifier.size(24.dp),
-            tint = if (darkTheme) CatalogIconDark else CatalogIconLight
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .graphicsLayer { alpha = contentAlpha }
+                .size(CATALOG_LIST_ICON_CIRCLE_SIZE_DP)
+                .background(iconCircleBg, RoundedCornerShape(999.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = stringResource(service.titleResId),
-                style = MaterialTheme.typography.bodyLarge
+            Icon(
+                imageVector = service.icon,
+                contentDescription = stringResource(service.titleResId),
+                modifier = Modifier.size(CATALOG_LIST_ICON_SIZE_DP),
+                tint = iconTint
             )
-            if (enabled && onSetFavorite != null) {
-                Spacer(modifier = Modifier.width(8.dp))
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = stringResource(service.titleResId),
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier
+                .weight(1f)
+                .graphicsLayer { alpha = contentAlpha }
+        )
+        if (enabled && onSetFavorite != null) {
+            IconButton(
+                onClick = { onSetFavorite() },
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = starButtonBg,
+                    contentColor = starTint
+                )
+            ) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
                     contentDescription = stringResource(
                         if (isFavorite) R.string.content_description_remove_favorite
                         else R.string.content_description_set_favorite
                     ),
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clickable { onSetFavorite() }
-                        .padding(4.dp),
-                    tint = if (isFavorite) FavoriteStarYellow else FavoriteStarEmpty
+                    modifier = Modifier.size(CATALOG_CARD_STAR_SIZE_DP)
                 )
             }
         }
@@ -172,7 +194,7 @@ private fun CatalogSwitch(
     )
 }
 
-/** Карточка сервиса для сетки: иконка, название и звёздочка избранного (рядом с названием), переключатель. */
+/** Карточка сервиса для сетки: иконка в круге, название, переключатель; звёздочка избранного сверху справа. */
 @Composable
 fun ServiceCatalogCard(
     service: AppService,
@@ -186,13 +208,17 @@ fun ServiceCatalogCard(
     val borderColor = if (darkTheme) CatalogCardBorderDark else CatalogCardBorderLight
     val iconTint = if (darkTheme) CatalogIconDark else CatalogIconLight
     val starTint = if (isFavorite) FavoriteStarYellow else FavoriteStarEmpty
+    val iconCircleBg = if (darkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+    val contentAlpha = if (enabled) 1f else 0.5f
+    val starButtonBg = if (isFavorite) FavoriteStarYellow.copy(alpha = 0.15f) else cardBg
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(CATALOG_CARD_PADDING_DP),
         shape = RoundedCornerShape(CATALOG_CARD_CORNER_DP.dp),
         colors = CardDefaults.cardColors(containerColor = cardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border = BorderStroke(0.5.dp, borderColor)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -202,20 +228,29 @@ fun ServiceCatalogCard(
                     .padding(CATALOG_CARD_INNER_PADDING_DP),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = service.icon,
-                    contentDescription = stringResource(service.titleResId),
-                    modifier = Modifier.size(28.dp),
-                    tint = iconTint
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer { alpha = contentAlpha }
+                        .size(CATALOG_CARD_ICON_CIRCLE_SIZE_DP)
+                        .background(iconCircleBg, RoundedCornerShape(999.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = service.icon,
+                        contentDescription = stringResource(service.titleResId),
+                        modifier = Modifier.size(CATALOG_CARD_ICON_SIZE_DP),
+                        tint = iconTint
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(service.titleResId),
                     style = MaterialTheme.typography.labelMedium,
                     maxLines = 2,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.graphicsLayer { alpha = contentAlpha }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 CatalogSwitch(
                     checked = enabled,
                     onCheckedChange = onToggle,
@@ -228,7 +263,7 @@ fun ServiceCatalogCard(
                     onClick = { onSetFavorite() },
                     modifier = Modifier.align(Alignment.TopEnd),
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = cardBg,
+                        containerColor = starButtonBg,
                         contentColor = starTint
                     )
                 ) {
@@ -238,7 +273,7 @@ fun ServiceCatalogCard(
                             if (isFavorite) R.string.content_description_remove_favorite
                             else R.string.content_description_set_favorite
                         ),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(CATALOG_CARD_STAR_SIZE_DP)
                     )
                 }
             }

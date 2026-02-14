@@ -66,7 +66,8 @@ import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 private enum class ServiceCatalogViewMode { LIST, GRID }
 
 private val CATALOG_HORIZONTAL_INSET_DP = 16.dp
-private val CATALOG_MIN_CARD_WIDTH_DP = 96.dp
+/** Минимальная ширина карточки: иконка сервиса (48dp круг) и кнопка избранного (48dp) не должны пересекаться. */
+private val CATALOG_MIN_CARD_WIDTH_DP = 160.dp
 private val CATALOG_CONTENT_TOP_DP = 12.dp
 private val CATALOG_CONTENT_BOTTOM_DP = 24.dp
 

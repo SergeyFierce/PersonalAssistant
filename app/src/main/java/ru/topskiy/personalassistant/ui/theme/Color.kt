@@ -44,9 +44,9 @@ val SwitchTrackCheckedGreen = Color(0xFF34C759)
 val SwitchThumbChecked = Color.White
 
 // DockBar: фон капсулы, бордер капсулы, выбранный и невыбранный сервис
-val DockBarBgDark = Color(0xFF2A282B)
+val DockBarBgDark = Color(0xFF242424)
 val DockBarBgLight = Color(0xFFFDFFFE)
-val DockBarBorderDark = Color.White.copy(alpha = 0.12f)
+val DockBarBorderDark = Color.White.copy(alpha = 0.03f)
 val DockBarBorderLight = Color.Black.copy(alpha = 0.08f)
 val DockBarSelectedDark = Color(0xFF9C69E2)
 val DockBarSelectedLight = Color(0xFF1F8FE2)
