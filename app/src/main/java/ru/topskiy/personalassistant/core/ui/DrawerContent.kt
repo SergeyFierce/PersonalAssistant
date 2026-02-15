@@ -15,8 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -27,11 +25,13 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -41,10 +41,18 @@ import ru.topskiy.personalassistant.ui.theme.DrawerBodyDark
 import ru.topskiy.personalassistant.ui.theme.DrawerBodyLight
 import ru.topskiy.personalassistant.ui.theme.DrawerHeaderDark
 import ru.topskiy.personalassistant.ui.theme.DrawerHeaderLight
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.clickable
+import com.airbnb.lottie.LottieProperty
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.airbnb.lottie.compose.rememberLottieDynamicProperties
+import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 
 @Composable
 fun DrawerContent(
@@ -89,34 +97,43 @@ fun DrawerContent(
                         )
                     }
                 }
-                val rotation by animateFloatAsState(
-                    targetValue = if (darkTheme) 0f else 180f,
-                    animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-                    label = "theme_icon_rotation"
+                val composition by rememberLottieComposition(
+                    LottieCompositionSpec.RawRes(R.raw.day_night)
                 )
-                val scale = if (rotation <= 90f) 1f - (rotation / 90f) * 0.8f
-                else 0.2f + ((rotation - 90f) / 90f) * 0.8f
-                val iconToDisplay = if (rotation > 90f) Icons.Outlined.DarkMode else Icons.Outlined.LightMode
+                val whiteColorFilter = remember {
+                    PorterDuffColorFilter(android.graphics.Color.WHITE, PorterDuff.Mode.SRC_ATOP)
+                }
+                val lottieDynamicProperties = rememberLottieDynamicProperties(
+                    rememberLottieDynamicProperty(
+                        property = LottieProperty.COLOR_FILTER,
+                        value = whiteColorFilter,
+                        *arrayOf("**")
+                    )
+                )
+                val themeProgress by animateFloatAsState(
+                    targetValue = if (darkTheme) 0f else 0.5f,
+                    animationSpec = tween(
+                        durationMillis = 1000,
+                        easing = FastOutSlowInEasing
+                    ),
+                    label = "theme_lottie"
+                )
+                val themeToggleContentDesc = if (darkTheme) stringResource(R.string.theme_switch_to_light) else stringResource(R.string.theme_switch_to_dark)
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
                         .size(48.dp)
                         .clip(CircleShape)
-                        .clickable(onClick = onToggleTheme),
+                        .clickable(onClick = onToggleTheme)
+                        .semantics { contentDescription = themeToggleContentDesc },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = iconToDisplay,
-                        contentDescription = if (darkTheme) stringResource(R.string.theme_switch_to_light) else stringResource(R.string.theme_switch_to_dark),
-                        modifier = Modifier
-                            .size(28.dp)
-                            .graphicsLayer(
-                                rotationY = rotation,
-                                scaleX = scale,
-                                scaleY = scale
-                            ),
-                        tint = Color.White
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { themeProgress },
+                        modifier = Modifier.size(32.dp),
+                        dynamicProperties = lottieDynamicProperties
                     )
                 }
             }
