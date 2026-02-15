@@ -17,6 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -28,15 +32,23 @@ import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(params: ScreenParams) {
-    BackHandler(enabled = !params.drawerActive) {
+fun SettingsNotificationsScreen(params: ScreenParams) {
+    var notificationsEnabled by remember { mutableStateOf(false) }
+
+    BackHandler {
         params.navController.popBackStack()
+    }
+
+    val subtitle = if (notificationsEnabled) {
+        stringResource(R.string.settings_notifications_summary_on)
+    } else {
+        stringResource(R.string.settings_notifications_summary_off)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
+                title = { Text(stringResource(R.string.settings_notifications)) },
                 navigationIcon = {
                     IconButton(onClick = { params.navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -60,28 +72,12 @@ fun SettingsScreen(params: ScreenParams) {
                 .verticalScroll(rememberScrollState())
         ) {
             SettingsGroup(darkTheme = params.darkTheme) {
-                SettingsRow(
-                    title = stringResource(R.string.settings_appearance),
-                    darkTheme = params.darkTheme,
-                    onClick = { params.navController.navigate(SETTINGS_APPEARANCE_ROUTE) }
-                )
-                SettingsRowDivider(darkTheme = params.darkTheme)
-                SettingsRow(
+                SettingsSwitchRow(
                     title = stringResource(R.string.settings_notifications),
-                    darkTheme = params.darkTheme,
-                    onClick = { params.navController.navigate(SETTINGS_NOTIFICATIONS_ROUTE) }
-                )
-                SettingsRowDivider(darkTheme = params.darkTheme)
-                SettingsRow(
-                    title = stringResource(R.string.settings_about),
-                    darkTheme = params.darkTheme,
-                    onClick = { params.navController.navigate(SETTINGS_ABOUT_ROUTE) }
-                )
-                SettingsRowDivider(darkTheme = params.darkTheme)
-                SettingsRow(
-                    title = stringResource(R.string.settings_privacy),
-                    darkTheme = params.darkTheme,
-                    onClick = { params.navController.navigate(SETTINGS_PRIVACY_ROUTE) }
+                    subtitle = subtitle,
+                    checked = notificationsEnabled,
+                    onCheckedChange = { notificationsEnabled = it },
+                    darkTheme = params.darkTheme
                 )
             }
         }

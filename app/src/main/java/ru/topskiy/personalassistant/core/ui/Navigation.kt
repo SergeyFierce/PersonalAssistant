@@ -29,11 +29,19 @@ const val ONBOARDING_ROUTE = "onboarding"
 const val MAIN_ROUTE = "main"
 const val MANAGE_SERVICES_ROUTE = "manage_services"
 const val SETTINGS_ROUTE = "settings"
+const val SETTINGS_APPEARANCE_ROUTE = "settings/appearance"
+const val SETTINGS_NOTIFICATIONS_ROUTE = "settings/notifications"
+const val SETTINGS_ABOUT_ROUTE = "settings/about"
+const val SETTINGS_PRIVACY_ROUTE = "settings/privacy"
 
 private const val SCREEN_NAME_ONBOARDING = "onboarding"
 private const val SCREEN_NAME_MAIN = "main"
 private const val SCREEN_NAME_SETTINGS = "settings"
 private const val SCREEN_NAME_MANAGE_SERVICES = "manage_services"
+private const val SCREEN_NAME_SETTINGS_APPEARANCE = "settings_appearance"
+private const val SCREEN_NAME_SETTINGS_NOTIFICATIONS = "settings_notifications"
+private const val SCREEN_NAME_SETTINGS_ABOUT = "settings_about"
+private const val SCREEN_NAME_SETTINGS_PRIVACY = "settings_privacy"
 
 // ——— Общие анимации (навигация и AnimatedContent) ———
 
@@ -109,6 +117,10 @@ fun AppNavHost(
             MAIN_ROUTE -> SCREEN_NAME_MAIN
             SETTINGS_ROUTE -> SCREEN_NAME_SETTINGS
             MANAGE_SERVICES_ROUTE -> SCREEN_NAME_MANAGE_SERVICES
+            SETTINGS_APPEARANCE_ROUTE -> SCREEN_NAME_SETTINGS_APPEARANCE
+            SETTINGS_NOTIFICATIONS_ROUTE -> SCREEN_NAME_SETTINGS_NOTIFICATIONS
+            SETTINGS_ABOUT_ROUTE -> SCREEN_NAME_SETTINGS_ABOUT
+            SETTINGS_PRIVACY_ROUTE -> SCREEN_NAME_SETTINGS_PRIVACY
             else -> return@LaunchedEffect
         }
         FirebaseAnalytics.getInstance(context).logEvent(
@@ -122,7 +134,10 @@ fun AppNavHost(
         modifier = modifier,
         enterTransition = { navEnterTransition() },
         exitTransition = {
-            if (targetState.destination.route == MANAGE_SERVICES_ROUTE || targetState.destination.route == SETTINGS_ROUTE) {
+            val next = targetState.destination.route
+            if (next == MANAGE_SERVICES_ROUTE || next == SETTINGS_ROUTE ||
+                next == SETTINGS_APPEARANCE_ROUTE || next == SETTINGS_NOTIFICATIONS_ROUTE ||
+                next == SETTINGS_ABOUT_ROUTE || next == SETTINGS_PRIVACY_ROUTE) {
                 ExitTransition.None
             } else {
                 navExitTransition()
@@ -167,6 +182,19 @@ fun AppNavHost(
             popExitTransition = { navDrawerLikeExitTransition() }
         ) {
             SettingsScreen(params = screenParams)
+        }
+
+        composable(route = SETTINGS_APPEARANCE_ROUTE) {
+            SettingsAppearanceScreen(params = screenParams)
+        }
+        composable(route = SETTINGS_NOTIFICATIONS_ROUTE) {
+            SettingsNotificationsScreen(params = screenParams)
+        }
+        composable(route = SETTINGS_ABOUT_ROUTE) {
+            SettingsAboutScreen(params = screenParams)
+        }
+        composable(route = SETTINGS_PRIVACY_ROUTE) {
+            SettingsPrivacyScreen(params = screenParams)
         }
     }
 }

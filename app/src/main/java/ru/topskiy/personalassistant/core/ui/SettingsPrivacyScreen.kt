@@ -28,15 +28,15 @@ import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(params: ScreenParams) {
-    BackHandler(enabled = !params.drawerActive) {
+fun SettingsPrivacyScreen(params: ScreenParams) {
+    BackHandler {
         params.navController.popBackStack()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
+                title = { Text(stringResource(R.string.settings_privacy)) },
                 navigationIcon = {
                     IconButton(onClick = { params.navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -61,27 +61,10 @@ fun SettingsScreen(params: ScreenParams) {
         ) {
             SettingsGroup(darkTheme = params.darkTheme) {
                 SettingsRow(
-                    title = stringResource(R.string.settings_appearance),
+                    title = stringResource(R.string.settings_privacy_stub),
                     darkTheme = params.darkTheme,
-                    onClick = { params.navController.navigate(SETTINGS_APPEARANCE_ROUTE) }
-                )
-                SettingsRowDivider(darkTheme = params.darkTheme)
-                SettingsRow(
-                    title = stringResource(R.string.settings_notifications),
-                    darkTheme = params.darkTheme,
-                    onClick = { params.navController.navigate(SETTINGS_NOTIFICATIONS_ROUTE) }
-                )
-                SettingsRowDivider(darkTheme = params.darkTheme)
-                SettingsRow(
-                    title = stringResource(R.string.settings_about),
-                    darkTheme = params.darkTheme,
-                    onClick = { params.navController.navigate(SETTINGS_ABOUT_ROUTE) }
-                )
-                SettingsRowDivider(darkTheme = params.darkTheme)
-                SettingsRow(
-                    title = stringResource(R.string.settings_privacy),
-                    darkTheme = params.darkTheme,
-                    onClick = { params.navController.navigate(SETTINGS_PRIVACY_ROUTE) }
+                    showChevron = false,
+                    onClick = { }
                 )
             }
         }

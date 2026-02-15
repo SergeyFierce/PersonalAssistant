@@ -113,7 +113,7 @@ fun DrawerContent(
                 val themeProgress by animateFloatAsState(
                     targetValue = if (darkTheme) 0f else 0.5f,
                     animationSpec = tween(
-                        durationMillis = 1000,
+                        durationMillis = THEME_ANIMATION_DURATION_MS,
                         easing = FastOutSlowInEasing
                     ),
                     label = "theme_lottie"
