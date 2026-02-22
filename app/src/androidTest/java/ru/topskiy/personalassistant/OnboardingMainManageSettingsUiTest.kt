@@ -149,12 +149,30 @@ class OnboardingMainManageSettingsUiTest {
                 false
             }
         }
-        composeRule.onNodeWithText(string(R.string.settings_theme_section)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.theme_light)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.theme_dark)).assertIsDisplayed()
-        composeRule.onNodeWithText(string(R.string.theme_dark)).performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText(string(R.string.theme_light)).performClick()
+        composeRule.onNodeWithText(string(R.string.settings_appearance)).performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 3_000) {
+            try {
+                composeRule.onAllNodesWithText(string(R.string.settings_theme_switch_day)).fetchSemanticsNodes().isNotEmpty() ||
+                    composeRule.onAllNodesWithText(string(R.string.settings_theme_switch_night)).fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        val switchToDay = string(R.string.settings_theme_switch_day)
+        val switchToNight = string(R.string.settings_theme_switch_night)
+        if (composeRule.onAllNodesWithText(switchToDay).fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText(switchToDay).assertIsDisplayed()
+            composeRule.onNodeWithText(switchToDay).performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText(switchToNight).assertIsDisplayed()
+            composeRule.onNodeWithText(switchToNight).performClick()
+        } else {
+            composeRule.onNodeWithText(switchToNight).assertIsDisplayed()
+            composeRule.onNodeWithText(switchToNight).performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithText(switchToDay).assertIsDisplayed()
+            composeRule.onNodeWithText(switchToDay).performClick()
+        }
         composeRule.waitForIdle()
     }
 }

@@ -8,7 +8,7 @@ Android‑приложение‑органайзер с набором серв
 
 | Слой | Путь | Назначение |
 |------|------|------------|
-| **datastore** | `core/datastore/` | Хранение настроек: интерфейс `SettingsRepository`, реализация `DataStoreSettingsRepository`, модель `InitialSettings` для bootstrap. |
+| **datastore** | `core/datastore/` | Хранение настроек: интерфейс `SettingsRepository`, реализация `EncryptedSettingsRepository` (EncryptedSharedPreferences), модель `InitialSettings` для bootstrap. Unit-тесты используют `DataStoreSettingsRepository`. |
 | **di** | `core/di/` | Hilt-модуль `AppModule` (предоставление `SettingsRepository`), EntryPoint для доступа к репозиторию из `Application`. |
 | **model** | `core/model/` | Доменная модель: enum `ServiceId`, `AppService`, `ServiceCategory`, единый реестр `ServiceRegistry`. |
 | **ui** | `core/ui/` | Экранная логика и навигация: ViewModel (`AppStateViewModel`), экраны (Bootstrap, Onboarding, Main, ManageServices, Settings), док-бар, drawer, общие параметры `ScreenParams`. |
@@ -20,7 +20,7 @@ Android‑приложение‑органайзер с набором серв
 
 **Навигация:** стартовый маршрут — `bootstrap`. `BootstrapScreen` читает `getInitialSettings()` и переходит на `onboarding` (если онбординг не пройден) или `main`. Далее доступны маршруты `main`, `manage_services`, `settings`; переход в боковое меню (drawer) и назад через `NavController`.
 
-**Где хранятся настройки:** DataStore Preferences, файл `settings` (имя задаётся в `preferencesDataStore(name = "settings")`). Ключи: включённые сервисы, избранный/последний сервис, флаг онбординга, тема (light/dark), режим каталога (список/сетка). При первом запуске тема один раз инициализируется по системной в `PersonalAssistantApp.onCreate()`.
+**Где хранятся настройки:** в продакшене — EncryptedSharedPreferences (androidx.security:security-crypto), файл `encrypted_settings`; ключи те же (включённые сервисы, избранный/последний сервис, онбординг, тема, режим каталога, уведомления). При первом запуске после обновления с версии на обычном DataStore выполняется однократная миграция данных в зашифрованное хранилище. При первом запуске приложения тема инициализируется по системной в `PersonalAssistantApp.onCreate()`.
 
 **Тесты:** unit-тесты на JVM покрывают `ServiceRegistry`, `SettingsRepository` и `AppStateViewModel`; instrumented-тесты — старт приложения, доступ к настройкам через Hilt и ключевые UI-сценарии (онбординг, главная, управление сервисами, настройки).
 

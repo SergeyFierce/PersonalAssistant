@@ -38,6 +38,13 @@
 -keep class ru.topskiy.personalassistant.core.datastore.InitialSettings { *; }
 -keep class ru.topskiy.personalassistant.core.datastore.SettingsRepository { *; }
 -keep class ru.topskiy.personalassistant.core.datastore.DataStoreSettingsRepository { *; }
+-keep class ru.topskiy.personalassistant.core.datastore.EncryptedSettingsRepository { *; }
+
+# ---------------------------------------------------------------------------
+# Security Crypto (EncryptedSharedPreferences)
+# ---------------------------------------------------------------------------
+-keep class androidx.security.crypto.** { *; }
+-dontwarn androidx.security.crypto.**
 
 # ---------------------------------------------------------------------------
 # Firebase Crashlytics (читаемые стектрейсы и загрузка mapping)

@@ -107,6 +107,20 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun `notificationsEnabledFlow defaults to false and setNotificationsEnabled persists`() = runTest {
+        val repo = createRepository(testDir = File("build/tmp/settingsRepoTest7"))
+
+        assertEquals(false, repo.notificationsEnabledFlow.first())
+
+        val setResult = repo.setNotificationsEnabled(true)
+        assert(setResult.isSuccess)
+        assertEquals(true, repo.notificationsEnabledFlow.first())
+
+        repo.setNotificationsEnabled(false)
+        assertEquals(false, repo.notificationsEnabledFlow.first())
+    }
+
+    @Test
     fun `flows fall back to defaults when DataStore throws`() = runTest {
         val failingDataStore = object : DataStore<Preferences> {
             override val data: Flow<Preferences> = flow {
@@ -126,6 +140,7 @@ class SettingsRepositoryTest {
         assertEquals(false, repo.onboardingDoneFlow.first())
         assertEquals("light", repo.themeFlow.first())
         assertEquals(true, repo.servicesCatalogListViewFlow.first())
+        assertEquals(false, repo.notificationsEnabledFlow.first())
     }
 }
 

@@ -52,8 +52,12 @@ class AppStateViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
-     * Главный экран уже показывался в этой сессии процесса (холодный старт уже был).
-     * При первом показе используем избранный (если есть), при возврате из Настроек/Сервисов — последний открытый.
+     * Флаг: главный экран уже показывался в этой сессии процесса.
+     *
+     * Нужен, чтобы различать два сценария: (1) первый показ после холодного старта — тогда
+     * открываем избранный сервис (или последний/первый из включённых); (2) возврат на главный
+     * из Настроек или Управления сервисами — тогда показываем последний открытый сервис.
+     * Сбрасывается при уничтожении процесса (новый экземпляр ViewModel при следующем запуске).
      */
     var hasMainScreenBeenShownThisProcess: Boolean = false
         private set
@@ -97,9 +101,23 @@ class AppStateViewModel @Inject constructor(
             initialValue = null
         )
 
+    val notificationsEnabled = settingsRepository.notificationsEnabledFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = false
+    )
+
     fun setServicesCatalogListView(listView: Boolean) {
         viewModelScope.launch {
             settingsRepository.setServicesCatalogListView(listView).onFailure {
+                _messageEvent.emit(R.string.settings_save_error)
+            }
+        }
+    }
+
+    fun setNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setNotificationsEnabled(enabled).onFailure {
                 _messageEvent.emit(R.string.settings_save_error)
             }
         }

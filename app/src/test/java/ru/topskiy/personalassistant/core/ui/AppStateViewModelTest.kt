@@ -37,10 +37,17 @@ private class FakeSettingsRepository(
     override val onboardingDoneFlow: Flow<Boolean> = onboardingFlow
     override val themeFlow: Flow<String> = flowOf("light")
     override val servicesCatalogListViewFlow: Flow<Boolean> = flowOf(true)
+    private val _notificationsEnabledFlow = MutableStateFlow(false)
+    override val notificationsEnabledFlow: Flow<Boolean> = _notificationsEnabledFlow
 
     override suspend fun ensureThemeInitialized(context: Context): Result<Unit> = Result.success(Unit)
 
     override suspend fun setServicesCatalogListView(listView: Boolean): Result<Unit> = Result.success(Unit)
+
+    override suspend fun setNotificationsEnabled(enabled: Boolean): Result<Unit> = runCatching {
+        _notificationsEnabledFlow.value = enabled
+        Unit
+    }
 
     override suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit> =
         runCatching {

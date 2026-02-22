@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import android.content.SharedPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -35,7 +36,10 @@ interface SettingsRepository {
     val themeFlow: Flow<String>
     /** true = вид списком, false = вид карточками. */
     val servicesCatalogListViewFlow: Flow<Boolean>
+    /** Включены ли уведомления. По умолчанию false. */
+    val notificationsEnabledFlow: Flow<Boolean>
     suspend fun setServicesCatalogListView(listView: Boolean): Result<Unit>
+    suspend fun setNotificationsEnabled(enabled: Boolean): Result<Unit>
     suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit>
     suspend fun setFavorite(value: ServiceId?): Result<Unit>
     suspend fun setLastService(value: ServiceId?): Result<Unit>
@@ -57,6 +61,9 @@ private val ONBOARDING_DONE_KEY = booleanPreferencesKey("onboarding_done")
 private val THEME_KEY = stringPreferencesKey("theme")
 /** true = список, false = сетка (карточки). По умолчанию сетка. */
 private val SERVICES_CATALOG_LIST_VIEW_KEY = booleanPreferencesKey("services_catalog_list_view")
+private val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
+
+private const val MIGRATION_DONE_KEY = "encrypted_migration_done"
 
 private fun String.toServiceIdOrNull(): ServiceId? = try {
     ServiceId.valueOf(this)
@@ -106,12 +113,23 @@ class DataStoreSettingsRepository(
         preferences[SERVICES_CATALOG_LIST_VIEW_KEY] ?: true
     }
 
+    override val notificationsEnabledFlow: Flow<Boolean> = dataStoreFlow.map { preferences ->
+        preferences[NOTIFICATIONS_ENABLED_KEY] ?: false
+    }
+
     override suspend fun setServicesCatalogListView(listView: Boolean): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             preferences[SERVICES_CATALOG_LIST_VIEW_KEY] = listView
         }
         Unit
     }.also { it.onFailure { e -> Log.e(TAG, "setServicesCatalogListView failed", e) } }
+
+    override suspend fun setNotificationsEnabled(enabled: Boolean): Result<Unit> = runCatching {
+        dataStore.edit { preferences ->
+            preferences[NOTIFICATIONS_ENABLED_KEY] = enabled
+        }
+        Unit
+    }.also { it.onFailure { e -> Log.e(TAG, "setNotificationsEnabled failed", e) } }
 
     override suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit> = runCatching {
         if (set.isEmpty()) return@runCatching
@@ -191,4 +209,27 @@ class DataStoreSettingsRepository(
             onboardingDone = prefs[ONBOARDING_DONE_KEY] ?: false
         )
     }.also { it.onFailure { e -> Log.e(TAG, "getInitialSettings failed", e) } }
+}
+
+/**
+ * Однократная миграция данных из обычного DataStore в [targetPrefs] (EncryptedSharedPreferences).
+ * Вызывать до первого использования targetPrefs. Если в targetPrefs уже есть ключ [MIGRATION_DONE_KEY],
+ * миграция не выполняется. Иначе читает [dataStore], копирует все ключи в targetPrefs и ставит флаг.
+ */
+internal suspend fun migrateDataStoreToEncryptedIfNeeded(
+    dataStore: DataStore<Preferences>,
+    targetPrefs: SharedPreferences
+) {
+    if (targetPrefs.getBoolean(MIGRATION_DONE_KEY, false)) return
+    val prefs = dataStore.data.first()
+    val editor = targetPrefs.edit()
+    prefs[ENABLED_SERVICES_KEY]?.let { editor.putStringSet(ENABLED_SERVICES_KEY.name, it) }
+    prefs[FAVORITE_SERVICE_KEY]?.let { editor.putString(FAVORITE_SERVICE_KEY.name, it) }
+    prefs[LAST_SERVICE_KEY]?.let { editor.putString(LAST_SERVICE_KEY.name, it) }
+    editor.putBoolean(ONBOARDING_DONE_KEY.name, prefs[ONBOARDING_DONE_KEY] ?: false)
+    prefs[THEME_KEY]?.let { editor.putString(THEME_KEY.name, it) }
+    editor.putBoolean(SERVICES_CATALOG_LIST_VIEW_KEY.name, prefs[SERVICES_CATALOG_LIST_VIEW_KEY] ?: true)
+    editor.putBoolean(NOTIFICATIONS_ENABLED_KEY.name, prefs[NOTIFICATIONS_ENABLED_KEY] ?: false)
+    editor.putBoolean(MIGRATION_DONE_KEY, true)
+    editor.apply()
 }

@@ -63,7 +63,6 @@
     <string name="settings_about_version">Версия %s</string>
     <string name="settings_privacy_stub">Раздел в разработке</string>
     <string name="content_description_chevron">Перейти</string>
-    <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
 

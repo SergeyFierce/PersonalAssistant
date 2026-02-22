@@ -18,10 +18,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import ru.topskiy.personalassistant.R
@@ -33,7 +31,7 @@ import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsNotificationsScreen(params: ScreenParams) {
-    var notificationsEnabled by remember { mutableStateOf(false) }
+    val notificationsEnabled by params.viewModel.notificationsEnabled.collectAsStateWithLifecycle()
 
     BackHandler {
         params.navController.popBackStack()
@@ -76,7 +74,7 @@ fun SettingsNotificationsScreen(params: ScreenParams) {
                     title = stringResource(R.string.settings_notifications),
                     subtitle = subtitle,
                     checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it },
+                    onCheckedChange = { params.viewModel.setNotificationsEnabled(it) },
                     darkTheme = params.darkTheme
                 )
             }
