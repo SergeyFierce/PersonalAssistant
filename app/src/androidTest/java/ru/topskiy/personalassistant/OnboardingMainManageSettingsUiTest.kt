@@ -23,6 +23,13 @@ import ru.topskiy.personalassistant.core.model.ServiceId
 @RunWith(AndroidJUnit4::class)
 class OnboardingMainManageSettingsUiTest {
 
+    companion object {
+        private const val BOOTSTRAP_TIMEOUT_MS = 10_000
+        private const val NAVIGATION_OR_STEP_TIMEOUT_MS = 5_000
+        private const val DRAWER_OPEN_TIMEOUT_MS = 2_000
+        private const val SCREEN_WAIT_TIMEOUT_MS = 3_000
+    }
+
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -30,7 +37,7 @@ class OnboardingMainManageSettingsUiTest {
 
     /** Ждём завершения bootstrap: исчезновение "Загрузка…" и появление онбординга или главного экрана. */
     private fun waitPastBootstrap() {
-        composeRule.waitUntil(timeoutMillis = 10_000) {
+        composeRule.waitUntil(timeoutMillis = BOOTSTRAP_TIMEOUT_MS) {
             val loading = composeRule.onAllNodesWithText(string(R.string.loading))
             val onboarding = composeRule.onAllNodesWithText(string(R.string.onboarding_title))
             val main = composeRule.onAllNodesWithContentDescription(string(R.string.menu))
@@ -49,7 +56,7 @@ class OnboardingMainManageSettingsUiTest {
         if (composeRule.onAllNodesWithText(string(R.string.onboarding_title)).fetchSemanticsNodes().isNotEmpty()) {
             composeRule.onNodeWithText(string(R.string.service_deals)).performScrollTo().performClick()
             composeRule.onNodeWithText(string(R.string.onboarding_start)).performScrollTo().performClick()
-            composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.waitUntil(timeoutMillis = NAVIGATION_OR_STEP_TIMEOUT_MS) {
                 try {
                     composeRule.onAllNodesWithText(string(R.string.service_in_development)).fetchSemanticsNodes().isNotEmpty() ||
                         composeRule.onAllNodesWithContentDescription(string(R.string.menu)).fetchSemanticsNodes().isNotEmpty()
@@ -62,7 +69,7 @@ class OnboardingMainManageSettingsUiTest {
 
     private fun openDrawer() {
         composeRule.onNodeWithContentDescription(string(R.string.menu)).performClick()
-        composeRule.waitUntil(timeoutMillis = 2_000) {
+        composeRule.waitUntil(timeoutMillis = DRAWER_OPEN_TIMEOUT_MS) {
             try {
                 composeRule.onAllNodesWithText(string(R.string.drawer_services)).fetchSemanticsNodes().isNotEmpty()
             } catch (_: Exception) {
@@ -77,7 +84,7 @@ class OnboardingMainManageSettingsUiTest {
         composeRule.onNodeWithText(string(R.string.onboarding_title)).assertIsDisplayed()
         composeRule.onNodeWithText(string(R.string.service_deals)).performScrollTo().performClick()
         composeRule.onNodeWithText(string(R.string.onboarding_start)).performScrollTo().performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = NAVIGATION_OR_STEP_TIMEOUT_MS) {
             try {
                 composeRule.onAllNodesWithText(string(R.string.service_in_development)).fetchSemanticsNodes().isNotEmpty() ||
                     composeRule.onAllNodesWithContentDescription(string(R.string.menu)).fetchSemanticsNodes().isNotEmpty()
@@ -101,7 +108,7 @@ class OnboardingMainManageSettingsUiTest {
         completeOnboardingIfShown()
         openDrawer()
         composeRule.onNodeWithText(string(R.string.drawer_services)).performClick()
-        composeRule.waitUntil(timeoutMillis = 3_000) {
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
             try {
                 composeRule.onAllNodesWithText(string(R.string.manage_services_title)).fetchSemanticsNodes().isNotEmpty()
             } catch (_: Exception) {
@@ -116,7 +123,7 @@ class OnboardingMainManageSettingsUiTest {
         completeOnboardingIfShown()
         openDrawer()
         composeRule.onNodeWithText(string(R.string.drawer_services)).performClick()
-        composeRule.waitUntil(timeoutMillis = 3_000) {
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
             try {
                 composeRule.onAllNodesWithTag("service_${ServiceId.DEALS}").fetchSemanticsNodes().isNotEmpty()
             } catch (_: Exception) {
@@ -126,7 +133,7 @@ class OnboardingMainManageSettingsUiTest {
         val switchDeals = composeRule.onNodeWithTag("service_${ServiceId.DEALS}")
         switchDeals.assertIsOn()
         switchDeals.performClick()
-        composeRule.waitUntil(timeoutMillis = 3_000) {
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
             try {
                 composeRule.onAllNodesWithText(string(R.string.min_one_service_required)).fetchSemanticsNodes().isNotEmpty()
             } catch (_: Exception) {
@@ -142,7 +149,7 @@ class OnboardingMainManageSettingsUiTest {
         completeOnboardingIfShown()
         openDrawer()
         composeRule.onNodeWithText(string(R.string.drawer_settings)).performClick()
-        composeRule.waitUntil(timeoutMillis = 3_000) {
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
             try {
                 composeRule.onAllNodesWithText(string(R.string.settings_title)).fetchSemanticsNodes().isNotEmpty()
             } catch (_: Exception) {
@@ -150,7 +157,7 @@ class OnboardingMainManageSettingsUiTest {
             }
         }
         composeRule.onNodeWithText(string(R.string.settings_appearance)).performScrollTo().performClick()
-        composeRule.waitUntil(timeoutMillis = 3_000) {
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
             try {
                 composeRule.onAllNodesWithText(string(R.string.settings_theme_switch_day)).fetchSemanticsNodes().isNotEmpty() ||
                     composeRule.onAllNodesWithText(string(R.string.settings_theme_switch_night)).fetchSemanticsNodes().isNotEmpty()

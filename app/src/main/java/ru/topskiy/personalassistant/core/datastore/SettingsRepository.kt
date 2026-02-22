@@ -26,11 +26,18 @@ data class InitialSettings(
     val onboardingDone: Boolean
 )
 
-/** Абстракция репозитория настроек (для внедрения и подмены в тестах). */
+/**
+ * Абстракция репозитория настроек (для внедрения и подмены в тестах).
+ * Единственный источник истины для настроек приложения.
+ */
 interface SettingsRepository {
+    /** Множество включённых сервисов (минимум один, по умолчанию [ServiceId.DEALS]). */
     val enabledServicesFlow: Flow<Set<ServiceId>>
+    /** Избранный сервис (открывается при запуске, если включён); null — не задан. */
     val favoriteServiceFlow: Flow<ServiceId?>
+    /** Последний открытый сервис; используется при отсутствии избранного. */
     val lastServiceFlow: Flow<ServiceId?>
+    /** Пройден ли онбординг выбора сервисов. */
     val onboardingDoneFlow: Flow<Boolean>
     /** "dark" | "light" — при первом запуске вызывать [ensureThemeInitialized] для однократной инициализации по системной теме. */
     val themeFlow: Flow<String>
@@ -38,15 +45,26 @@ interface SettingsRepository {
     val servicesCatalogListViewFlow: Flow<Boolean>
     /** Включены ли уведомления. По умолчанию false. */
     val notificationsEnabledFlow: Flow<Boolean>
+
+    /** Сохраняет режим отображения каталога сервисов (список/сетка). */
     suspend fun setServicesCatalogListView(listView: Boolean): Result<Unit>
+    /** Включает или выключает уведомления. */
     suspend fun setNotificationsEnabled(enabled: Boolean): Result<Unit>
+    /** Записывает множество включённых сервисов; не должно быть пустым. Избранный сбрасывается, если не входит в [set]. */
     suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit>
+    /** Устанавливает или сбрасывает избранный сервис; должен входить в включённые. */
     suspend fun setFavorite(value: ServiceId?): Result<Unit>
+    /** Записывает последний открытый сервис (для восстановления при возврате на главный экран). */
     suspend fun setLastService(value: ServiceId?): Result<Unit>
+    /** Отмечает онбординг как пройденный или сбрасывает. */
     suspend fun setOnboardingDone(done: Boolean): Result<Unit>
+    /** Устанавливает тему: "light" или "dark"; остальные значения игнорируются. */
     suspend fun setTheme(mode: String): Result<Unit>
     /** Однократная инициализация темы при первом запуске: если тема не задана, сохраняет "light" или "dark" по системной теме. */
     suspend fun ensureThemeInitialized(context: Context): Result<Unit>
+    /** Для EncryptedSettingsRepository: выполняет ленивую миграцию из DataStore в EncryptedSharedPreferences при первом вызове. Для остальных реализаций — no-op. */
+    suspend fun ensureMigrationDone()
+    /** Читает начальное состояние для bootstrap (onboarding/main); вызывать до первой навигации. */
     suspend fun getInitialSettings(): Result<InitialSettings>
 }
 
@@ -63,7 +81,7 @@ private val THEME_KEY = stringPreferencesKey("theme")
 private val SERVICES_CATALOG_LIST_VIEW_KEY = booleanPreferencesKey("services_catalog_list_view")
 private val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
 
-private const val MIGRATION_DONE_KEY = "encrypted_migration_done"
+internal const val MIGRATION_DONE_KEY = "encrypted_migration_done"
 
 private fun String.toServiceIdOrNull(): ServiceId? = try {
     ServiceId.valueOf(this)
@@ -194,6 +212,8 @@ class DataStoreSettingsRepository(
         }
         Unit
     }.also { it.onFailure { e -> Log.e(TAG, "ensureThemeInitialized failed", e) } }
+
+    override suspend fun ensureMigrationDone() {}
 
     override suspend fun getInitialSettings(): Result<InitialSettings> = runCatching {
         val prefs = dataStore.data.first()

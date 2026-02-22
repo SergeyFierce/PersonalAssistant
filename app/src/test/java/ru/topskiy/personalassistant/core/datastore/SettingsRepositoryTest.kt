@@ -19,17 +19,29 @@ import java.io.IOException
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsRepositoryTest {
 
+    companion object {
+        private const val SETTINGS_DATASTORE_FILENAME = "settings.preferences_pb"
+        private const val TEST_TMP_BASE = "build/tmp"
+        private const val TEST_DIR_COUNTER_INITIAL = 0
+        private var testDirCounter = TEST_DIR_COUNTER_INITIAL
+    }
+
     private fun createRepository(testDir: File): SettingsRepository {
         val dataStore = PreferenceDataStoreFactory.create(
             corruptionHandler = NoOpCorruptionHandler(),
-            produceFile = { File(testDir, "settings.preferences_pb") }
+            produceFile = { File(testDir, SETTINGS_DATASTORE_FILENAME) }
         )
         return DataStoreSettingsRepository(dataStore)
     }
 
+    private fun createRepository(): SettingsRepository {
+        testDirCounter++
+        return createRepository(File(TEST_TMP_BASE, "settingsRepoTest_$testDirCounter"))
+    }
+
     @Test
     fun `enabledServicesFlow falls back to DEALS when empty`() = runTest {
-        val repo = createRepository(testDir = File("build/tmp/settingsRepoTest1"))
+        val repo = createRepository()
 
         val enabled = repo.enabledServicesFlow.first()
 
@@ -38,7 +50,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun `setEnabledServices writes and reads back ids by name`() = runTest {
-        val repo = createRepository(testDir = File("build/tmp/settingsRepoTest2"))
+        val repo = createRepository()
         val set = setOf(ServiceId.DEALS, ServiceId.NOTES, ServiceId.CREDITS)
 
         val result = repo.setEnabledServices(set)
@@ -50,7 +62,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun `favoriteServiceFlow serializes and deserializes ServiceId`() = runTest {
-        val repo = createRepository(testDir = File("build/tmp/settingsRepoTest3"))
+        val repo = createRepository()
 
         // По умолчанию null
         assertNull(repo.favoriteServiceFlow.first())
@@ -65,7 +77,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun `getInitialSettings returns defaults when nothing stored`() = runTest {
-        val repo = createRepository(testDir = File("build/tmp/settingsRepoTest4"))
+        val repo = createRepository()
 
         val result = repo.getInitialSettings()
 
@@ -79,7 +91,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun `themeFlow reflects setTheme and ignores invalid values`() = runTest {
-        val repo = createRepository(testDir = File("build/tmp/settingsRepoTest5"))
+        val repo = createRepository()
 
         // По умолчанию light (fallback)
         assertEquals("light", repo.themeFlow.first())
@@ -96,7 +108,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun `servicesCatalogListViewFlow stores and reads back value`() = runTest {
-        val repo = createRepository(testDir = File("build/tmp/settingsRepoTest6"))
+        val repo = createRepository()
 
         // По умолчанию true (список)
         assertEquals(true, repo.servicesCatalogListViewFlow.first())
@@ -108,7 +120,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun `notificationsEnabledFlow defaults to false and setNotificationsEnabled persists`() = runTest {
-        val repo = createRepository(testDir = File("build/tmp/settingsRepoTest7"))
+        val repo = createRepository()
 
         assertEquals(false, repo.notificationsEnabledFlow.first())
 

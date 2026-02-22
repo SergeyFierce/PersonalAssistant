@@ -5,10 +5,13 @@ import android.content.res.Configuration
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import ru.topskiy.personalassistant.core.model.ServiceId
 
 private const val ENCRYPTED_PREFS_FILE = "encrypted_settings"
@@ -30,40 +33,58 @@ private fun String.toServiceIdOrNull(): ServiceId? = try {
 
 private fun Set<String>.toServiceIdSet(): Set<ServiceId> = mapNotNull { it.toServiceIdOrNull() }.toSet()
 
+private fun createEncryptedPrefs(context: Context): android.content.SharedPreferences {
+    val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+    return EncryptedSharedPreferences.create(
+        ENCRYPTED_PREFS_FILE,
+        masterKey,
+        context,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+}
+
 /**
  * Реализация [SettingsRepository] на базе EncryptedSharedPreferences.
  * Настройки хранятся в зашифрованном виде. При первом запуске выполняется миграция
  * из обычного DataStore (если он был), затем используются только зашифрованные данные.
+ *
+ * Конструктор с [SharedPreferences] — для тестов (in-memory или без шифрования).
  */
-class EncryptedSettingsRepository(
-    private val context: Context,
+class EncryptedSettingsRepository internal constructor(
+    private val prefs: android.content.SharedPreferences,
     private val legacyDataStore: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>
 ) : SettingsRepository {
 
-    private val prefs: android.content.SharedPreferences = createEncryptedPrefs(context)
+    constructor(
+        context: Context,
+        legacyDataStore: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>
+    ) : this(createEncryptedPrefs(context), legacyDataStore)
+    private val migrationMutex = Mutex()
 
     init {
-        runBlocking {
-            try {
-                migrateDataStoreToEncryptedIfNeeded(legacyDataStore, prefs)
-            } catch (e: Exception) {
-                Log.e(TAG, "Migration from DataStore failed, starting with empty encrypted prefs", e)
-                prefs.edit().putBoolean("encrypted_migration_done", true).apply()
-            }
-        }
         refreshAllFlows()
         prefs.registerOnSharedPreferenceChangeListener { _, _ -> refreshAllFlows() }
     }
 
-    private fun createEncryptedPrefs(context: Context): android.content.SharedPreferences {
-        val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        return EncryptedSharedPreferences.create(
-            ENCRYPTED_PREFS_FILE,
-            masterKey,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+    /**
+     * Ленивая миграция: при первом вызове переносит данные из DataStore в EncryptedSharedPreferences
+     * на [Dispatchers.IO], затем обновляет потоки. Повторные вызовы — no-op. Вызывать до первого
+     * использования данных (например, из Application перед ensureThemeInitialized и из getInitialSettings).
+     */
+    override suspend fun ensureMigrationDone() {
+        migrationMutex.withLock {
+            if (prefs.getBoolean(MIGRATION_DONE_KEY, false)) return
+            withContext(Dispatchers.IO) {
+                try {
+                    migrateDataStoreToEncryptedIfNeeded(legacyDataStore, prefs)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Migration from DataStore failed, starting with empty encrypted prefs", e)
+                    prefs.edit().putBoolean(MIGRATION_DONE_KEY, true).apply()
+                }
+                refreshAllFlows()
+            }
+        }
     }
 
     private val _enabledServicesFlow = MutableStateFlow(readEnabledServices())
@@ -184,6 +205,7 @@ class EncryptedSettingsRepository(
     }.also { it.onFailure { e -> Log.e(TAG, "ensureThemeInitialized failed", e) } }
 
     override suspend fun getInitialSettings(): Result<InitialSettings> = runCatching {
+        ensureMigrationDone()
         InitialSettings(
             enabledServices = readEnabledServices(),
             favoriteService = readFavoriteService(),

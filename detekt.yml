@@ -21,7 +21,8 @@ style:
     ignoreConstantDeclaration: true
     ignoreEnums: true
     ignoreNumbersInAnnotations: true
-    excludes: ["**/test/**", "**/androidTest/**", "**/ui/theme/Color.kt"]
+    # Только обоснованное исключение: Color.kt — палитра цветов (каждый val уже именованная константа; hex-литералы избыточно выносить).
+    excludes: ["**/ui/theme/Color.kt"]
 
   MaxLineLength:
     active: true

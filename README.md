@@ -9,7 +9,8 @@ Android‑приложение‑органайзер с набором серв
 | Слой | Путь | Назначение |
 |------|------|------------|
 | **datastore** | `core/datastore/` | Хранение настроек: интерфейс `SettingsRepository`, реализация `EncryptedSettingsRepository` (EncryptedSharedPreferences), модель `InitialSettings` для bootstrap. Unit-тесты используют `DataStoreSettingsRepository`. |
-| **di** | `core/di/` | Hilt-модуль `AppModule` (предоставление `SettingsRepository`), EntryPoint для доступа к репозиторию из `Application`. |
+| **domain** | `core/domain/` | Use case настроек: интерфейс `SettingsUseCase`, реализация `SettingsUseCaseImpl` (делегирует в репозиторий). ViewModel и Application зависят от use case, а не от репозитория напрямую. |
+| **di** | `core/di/` | Hilt-модуль `AppModule` (предоставление `SettingsRepository` и `SettingsUseCase`), EntryPoint для доступа к use case из `Application`. |
 | **model** | `core/model/` | Доменная модель: enum `ServiceId`, `AppService`, `ServiceCategory`, единый реестр `ServiceRegistry`. |
 | **ui** | `core/ui/` | Экранная логика и навигация: ViewModel (`AppStateViewModel`), экраны (Bootstrap, Onboarding, Main, ManageServices, Settings), док-бар, drawer, общие параметры `ScreenParams`. |
 | **theme** | `ui/theme/` | Compose-темы, цвета, типографика. |
@@ -28,13 +29,63 @@ Android‑приложение‑органайзер с набором серв
 - **Язык**: Kotlin
 - **UI**: Jetpack Compose (Material 3, Navigation Compose)
 - **DI**: Hilt
-- **Хранилище настроек**: DataStore (Preferences)
+- **Хранилище настроек**: EncryptedSharedPreferences (androidx.security:security-crypto) для зашифрованного хранения; при сбое инициализации — fallback на DataStore (Preferences) без шифрования.
 - **Crashlytics и аналитика**: Firebase (Crashlytics, Analytics)
 - **Прочее**: KSP, ViewModel, Coroutines
 
 ### Требования
 - **minSdk**: 24  
 - **targetSdk / compileSdk**: 36
+
+### Стратегия версий
+- **versionCode** — целое число, инкрементируется при каждом релизе (для магазина должно быть строго больше предыдущей версии).
+- **versionName** — семантическое версионирование **MAJOR.MINOR.PATCH** (например, 1.2.0). Задаётся в `app/build.gradle.kts`; чек-лист перед релизом — [docs/release.md](docs/release.md).
+
+### Структура проекта
+
+Дерево пакетов и основных файлов (исходники в `app/src/main/java/`):
+
+```
+ru.topskiy.personalassistant
+├── MainActivity.kt
+├── PersonalAssistantApp.kt
+├── core.datastore
+│   ├── EncryptedSettingsRepository.kt
+│   └── SettingsRepository.kt
+├── core.domain
+│   ├── SettingsUseCase.kt
+│   └── SettingsUseCaseImpl.kt
+├── core.di
+│   └── AppModule.kt
+├── core.model
+│   ├── AppService.kt
+│   ├── ServiceCategory.kt
+│   ├── ServiceId.kt
+│   └── ServiceRegistry.kt
+├── core.ui
+│   ├── AppStateViewModel.kt
+│   ├── BootstrapScreen.kt
+│   ├── DockBar.kt
+│   ├── DrawerContent.kt
+│   ├── ManageServicesScreen.kt
+│   ├── Navigation.kt
+│   ├── OnboardingScreen.kt
+│   ├── ScreenParams.kt
+│   ├── ServiceCatalogComponents.kt
+│   ├── ServicesMainScreen.kt
+│   ├── SettingsAboutScreen.kt
+│   ├── SettingsAppearanceScreen.kt
+│   ├── SettingsComponents.kt
+│   ├── SettingsNotificationsScreen.kt
+│   ├── SettingsPrivacyScreen.kt
+│   ├── SettingsScreen.kt
+│   ├── ThemeAnimation.kt
+│   └── TopBarDrawerGesture.kt
+└── ui.theme
+    ├── Color.kt
+    ├── Theme.kt
+    └── Type.kt
+```
 
 ### Сборка и запуск в Android Studio
 - Откройте папку проекта `PersonalAssistant` в Android Studio.
@@ -53,6 +104,41 @@ gradlew.bat :app:assembleDebug
 ```
 
 Готовый APK будет лежать в `app/build/outputs/apk/debug/`.
+
+### Запуск тестов
+
+**Unit-тесты** (JVM, без эмулятора):
+
+На Windows:
+```bash
+gradlew.bat :app:testDebugUnitTest
+```
+
+На macOS / Linux:
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+Отчёты: `app/build/reports/tests/testDebugUnitTest/`.
+
+**Instrumented-тесты** (требуется устройство или эмулятор):
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+(На Windows: `gradlew.bat :app:connectedDebugAndroidTest`.)
+
+### CI (GitHub Actions)
+В пайплайне (`.github/workflows/ci.yml`) при push/PR в `main`/`master` выполняются: **assembleDebug** и **testDebugUnitTest**. Instrumented-тесты в CI не запускаются; их нужно прогонять вручную или локально на устройстве/эмуляторе (`connectedDebugAndroidTest`).
+
+### Безопасность
+- **Настройки**: хранятся в EncryptedSharedPreferences (androidx.security:security-crypto); ключ через MasterKeys.
+- **Fallback**: при ошибке инициализации EncryptedSettingsRepository (например, на эмуляторе без поддержки) используется обычный DataStore без шифрования.
+- **Сеть**: cleartext-трафик запрещён через Network Security Config (`res/xml/network_security_config.xml`, `base-config cleartextTrafficPermitted="false"`).
+- **Секреты**: ключи, токены и пароли не захардкожены в коде; в логах (Log.*) только обобщённые сообщения и исключения без вывода пользовательских данных.
+- **Firebase**: для продакшена замените заглушку `app/google-services.json` на файл из вашего проекта в Firebase Console.
+
+Подробнее об архитектурных решениях по безопасности — в [docs/architecture.md](docs/architecture.md).
 
 ### Firebase (Crashlytics и Analytics)
 В проекте подключены Firebase Crashlytics (сбор Java/Kotlin и нативных падений) и Firebase Analytics (логирование открытий экранов: онбординг, главная, настройки, управление сервисами). В репозитории лежит заглушка `app/google-services.json`. Для работы с реальным проектом замените её на файл из [Firebase Console](https://console.firebase.google.com/) (добавьте Android‑приложение с package name `ru.topskiy.personalassistant` и скачайте `google-services.json`).

@@ -14,16 +14,16 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import ru.topskiy.personalassistant.R
 import ru.topskiy.personalassistant.core.datastore.InitialSettings
-import ru.topskiy.personalassistant.core.datastore.SettingsRepository
+import ru.topskiy.personalassistant.core.domain.SettingsUseCase
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
 
-private class FakeSettingsRepository(
+private class FakeSettingsUseCase(
     enabled: Set<ServiceId> = setOf(ServiceId.DEALS),
     favorite: ServiceId? = null,
     last: ServiceId? = null,
     onboardingDone: Boolean = false
-) : SettingsRepository {
+) : SettingsUseCase {
 
     val enabledFlow = MutableStateFlow(enabled)
     val favoriteFlow = MutableStateFlow(favorite)
@@ -41,50 +41,51 @@ private class FakeSettingsRepository(
     override val notificationsEnabledFlow: Flow<Boolean> = _notificationsEnabledFlow
 
     override suspend fun ensureThemeInitialized(context: Context): Result<Unit> = Result.success(Unit)
-
+    override suspend fun ensureMigrationDone() {}
     override suspend fun setServicesCatalogListView(listView: Boolean): Result<Unit> = Result.success(Unit)
-
     override suspend fun setNotificationsEnabled(enabled: Boolean): Result<Unit> = runCatching {
         _notificationsEnabledFlow.value = enabled
         Unit
     }
-
-    override suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit> =
-        runCatching {
-            enabledFlow.value = set
-            Unit
-        }
-
+    override suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit> = runCatching {
+        enabledFlow.value = set
+        Unit
+    }
     override suspend fun setFavorite(value: ServiceId?): Result<Unit> = runCatching {
         favoriteFlow.value = value
         Unit
     }
-
     override suspend fun setLastService(value: ServiceId?): Result<Unit> = runCatching {
         lastFlow.value = value
         Unit
     }
-
     override suspend fun setOnboardingDone(done: Boolean): Result<Unit> = runCatching {
         onboardingFlow.value = done
         Unit
     }
-
-    override suspend fun setTheme(mode: String): Result<Unit> =
-        runCatching {
-            lastSetTheme = mode
-            Unit
-        }
-
-    override suspend fun getInitialSettings(): Result<InitialSettings> =
-        Result.success(
-            InitialSettings(
-                enabledServices = enabledFlow.value,
-                favoriteService = favoriteFlow.value,
-                lastService = lastFlow.value,
-                onboardingDone = onboardingFlow.value
-            )
+    override suspend fun setTheme(mode: String): Result<Unit> = runCatching {
+        lastSetTheme = mode
+        Unit
+    }
+    override suspend fun getInitialSettings(): Result<InitialSettings> = Result.success(
+        InitialSettings(
+            enabledServices = enabledFlow.value,
+            favoriteService = favoriteFlow.value,
+            lastService = lastFlow.value,
+            onboardingDone = onboardingFlow.value
         )
+    )
+    override suspend fun completeOnboarding(
+        selectedServices: Set<ServiceId>,
+        firstService: ServiceId,
+        favoriteService: ServiceId?
+    ): Result<Unit> = runCatching {
+        enabledFlow.value = selectedServices
+        onboardingFlow.value = true
+        lastFlow.value = firstService
+        favoriteFlow.value = if (favoriteService != null && favoriteService in selectedServices) favoriteService else null
+        Unit
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -109,8 +110,8 @@ class AppStateViewModelTest {
 
     @Test
     fun `toggleService does not disable last remaining service`() = runTest {
-        val repo = FakeSettingsRepository(enabled = setOf(ServiceId.DEALS))
-        val vm = AppStateViewModel(repo)
+        val useCase = FakeSettingsUseCase(enabled = setOf(ServiceId.DEALS))
+        val vm = AppStateViewModel(useCase)
 
         // ждём, пока stateIn проглотит начальные значения
         assertEquals(setOf(ServiceId.DEALS), vm.uiState.value.enabledServices)
@@ -123,8 +124,8 @@ class AppStateViewModelTest {
 
     @Test
     fun `completeOnboarding writes enabled, onboardingDone, lastService and favorite`() = runTest {
-        val repo = FakeSettingsRepository()
-        val vm = AppStateViewModel(repo)
+        val useCase = FakeSettingsUseCase()
+        val vm = AppStateViewModel(useCase)
         val selected = setOf(ServiceId.DEALS, ServiceId.NOTES)
         val first = ServiceId.NOTES
         val favorite = ServiceId.DEALS
@@ -132,70 +133,104 @@ class AppStateViewModelTest {
         val result = vm.completeOnboarding(selected, first, favorite)
 
         assertTrue(result.isSuccess)
-        assertEquals(selected, repo.enabledFlow.value)
-        assertTrue(repo.onboardingFlow.value)
-        assertEquals(first, repo.lastFlow.value)
-        assertEquals(favorite, repo.favoriteFlow.value)
+        assertEquals(selected, useCase.enabledFlow.value)
+        assertTrue(useCase.onboardingFlow.value)
+        assertEquals(first, useCase.lastFlow.value)
+        assertEquals(favorite, useCase.favoriteFlow.value)
     }
 
     @Test
     fun `completeOnboarding with null favorite clears favorite`() = runTest {
-        val repo = FakeSettingsRepository(favorite = ServiceId.DEALS)
-        val vm = AppStateViewModel(repo)
+        val useCase = FakeSettingsUseCase(favorite = ServiceId.DEALS)
+        val vm = AppStateViewModel(useCase)
         val selected = setOf(ServiceId.DEALS, ServiceId.NOTES)
         val first = ServiceId.NOTES
 
         val result = vm.completeOnboarding(selected, first, null)
 
         assertTrue(result.isSuccess)
-        assertEquals(null, repo.favoriteFlow.value)
+        assertEquals(null, useCase.favoriteFlow.value)
     }
 
     @Test
-    fun `setTheme delegates to repository`() = runTest {
-        val repo = FakeSettingsRepository()
-        val vm = AppStateViewModel(repo)
+    fun `setTheme delegates to use case`() = runTest {
+        val useCase = FakeSettingsUseCase()
+        val vm = AppStateViewModel(useCase)
 
         vm.setTheme("dark")
 
-        assertEquals("dark", repo.lastSetTheme)
+        assertEquals("dark", useCase.lastSetTheme)
     }
 
     @Test
-    fun `setTheme emits error message when repository fails`() = runTest {
-        val failingRepo = object : FakeSettingsRepository() {
+    fun `setTheme emits settings_save_error when use case fails`() = runTest {
+        val failingUseCase = object : FakeSettingsUseCase() {
             override suspend fun setTheme(mode: String): Result<Unit> =
                 Result.failure(IllegalStateException("failure"))
         }
-        val vm = AppStateViewModel(failingRepo)
+        val vm = AppStateViewModel(failingUseCase)
 
+        var receivedMessageId: Int? = null
         val job = launch {
-            val messageId = vm.messageEvent.first()
-            assertEquals(R.string.settings_save_error, messageId)
+            receivedMessageId = vm.messageEvent.first()
         }
 
         vm.setTheme("dark")
-        job.cancel()
+
+        job.join()
+        assertEquals(R.string.settings_save_error, receivedMessageId)
     }
 
     @Test
-    fun `setEnabledServicesDirectly writes to repository`() = runTest {
-        val repo = FakeSettingsRepository(enabled = setOf(ServiceId.DEALS))
-        val vm = AppStateViewModel(repo)
+    fun `getInitialServiceIdForMainScreen first show in session prefers favorite then last then home`() = runTest {
+        val enabled = setOf(ServiceId.DEALS, ServiceId.NOTES, ServiceId.CREDITS)
+        val home = ServiceId.DEALS
+
+        val useCaseFavorite = FakeSettingsUseCase(enabled = enabled, favorite = ServiceId.CREDITS, last = ServiceId.NOTES)
+        val vm1 = AppStateViewModel(useCaseFavorite)
+        assertEquals(ServiceId.CREDITS, vm1.getInitialServiceIdForMainScreen(enabled, ServiceId.CREDITS, ServiceId.NOTES, home))
+
+        val useCaseLast = FakeSettingsUseCase(enabled = enabled, favorite = null, last = ServiceId.NOTES)
+        val vm2 = AppStateViewModel(useCaseLast)
+        assertEquals(ServiceId.NOTES, vm2.getInitialServiceIdForMainScreen(enabled, null, ServiceId.NOTES, home))
+
+        val useCaseHome = FakeSettingsUseCase(enabled = enabled, favorite = null, last = null)
+        val vm3 = AppStateViewModel(useCaseHome)
+        assertEquals(ServiceId.DEALS, vm3.getInitialServiceIdForMainScreen(enabled, null, null, home))
+    }
+
+    @Test
+    fun `getInitialServiceIdForMainScreen return from settings prefers last then favorite then home`() = runTest {
+        val enabled = setOf(ServiceId.DEALS, ServiceId.NOTES, ServiceId.CREDITS)
+        val home = ServiceId.DEALS
+        val useCase = FakeSettingsUseCase(enabled = enabled, favorite = ServiceId.CREDITS, last = ServiceId.NOTES)
+        val vm = AppStateViewModel(useCase)
+
+        vm.getInitialServiceIdForMainScreen(enabled, ServiceId.CREDITS, ServiceId.NOTES, home)
+
+        assertEquals(ServiceId.NOTES, vm.getInitialServiceIdForMainScreen(enabled, ServiceId.CREDITS, ServiceId.NOTES, home))
+        assertEquals(ServiceId.CREDITS, vm.getInitialServiceIdForMainScreen(enabled, ServiceId.CREDITS, null, home))
+        assertEquals(ServiceId.DEALS, vm.getInitialServiceIdForMainScreen(enabled, null, null, home))
+    }
+
+    @Test
+    fun `setEnabledServicesDirectly writes to use case`() = runTest {
+        val useCase = FakeSettingsUseCase(enabled = setOf(ServiceId.DEALS))
+        val vm = AppStateViewModel(useCase)
         val newSet = setOf(ServiceId.DEALS, ServiceId.NOTES)
 
         vm.setEnabledServicesDirectly(newSet)
 
-        assertEquals(newSet, repo.enabledFlow.value)
+        assertEquals(newSet, useCase.enabledFlow.value)
     }
 
     @Test
-    fun `setEnabledServicesDirectly emits error message when repository fails`() = runTest {
-        val failingRepo = object : FakeSettingsRepository() {
+    fun `setEnabledServicesDirectly emits error message when use case fails`() = runTest {
+        val failingUseCase = object : FakeSettingsUseCase() {
             override suspend fun setEnabledServices(set: Set<ServiceId>): Result<Unit> =
                 Result.failure(IllegalStateException("failure"))
         }
-        val vm = AppStateViewModel(failingRepo)
+        val vm = AppStateViewModel(failingUseCase)
         val services = setOf(ServiceId.DEALS, ServiceId.NOTES)
 
         val job = launch {
@@ -209,8 +244,8 @@ class AppStateViewModelTest {
 
     @Test
     fun `getInitialState returns onboarding route when onboarding not done`() = runTest {
-        val repo = FakeSettingsRepository(onboardingDone = false)
-        val vm = AppStateViewModel(repo)
+        val useCase = FakeSettingsUseCase(onboardingDone = false)
+        val vm = AppStateViewModel(useCase)
 
         val state = vm.getInitialState()
         val targetRoute = if (!state.onboardingDone) {
@@ -224,8 +259,8 @@ class AppStateViewModelTest {
 
     @Test
     fun `getInitialState returns main route when onboarding done`() = runTest {
-        val repo = FakeSettingsRepository(onboardingDone = true)
-        val vm = AppStateViewModel(repo)
+        val useCase = FakeSettingsUseCase(onboardingDone = true)
+        val vm = AppStateViewModel(useCase)
 
         val state = vm.getInitialState()
         val targetRoute = if (!state.onboardingDone) {
@@ -238,12 +273,12 @@ class AppStateViewModelTest {
     }
 
     @Test
-    fun `getInitialState falls back to defaults and emits error when repository fails`() = runTest {
-        val failingRepo = object : FakeSettingsRepository() {
+    fun `getInitialState falls back to defaults and emits error when use case fails`() = runTest {
+        val failingUseCase = object : FakeSettingsUseCase() {
             override suspend fun getInitialSettings(): Result<InitialSettings> =
                 Result.failure(IllegalStateException("load failed"))
         }
-        val vm = AppStateViewModel(failingRepo)
+        val vm = AppStateViewModel(failingUseCase)
 
         var receivedMessageId: Int? = null
         val job = launch {

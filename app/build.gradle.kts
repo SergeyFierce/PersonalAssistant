@@ -16,6 +16,8 @@ android {
         applicationId = "ru.topskiy.personalassistant"
         minSdk = 24
         targetSdk = 36
+        // versionCode: увеличивать при каждом релизе (целое, монотонно растёт).
+        // versionName: семантическое версионирование MAJOR.MINOR.PATCH (см. README, docs/release.md).
         versionCode = 1
         versionName = "1.0"
 

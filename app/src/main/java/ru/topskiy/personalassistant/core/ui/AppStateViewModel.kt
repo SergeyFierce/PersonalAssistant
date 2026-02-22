@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import ru.topskiy.personalassistant.R
 import ru.topskiy.personalassistant.core.datastore.InitialSettings
-import ru.topskiy.personalassistant.core.datastore.SettingsRepository
+import ru.topskiy.personalassistant.core.domain.SettingsUseCase
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
 import javax.inject.Inject
@@ -63,10 +63,10 @@ class AppStateViewModel @Inject constructor(
         private set
 
     val uiState = combine(
-        settingsRepository.enabledServicesFlow,
-        settingsRepository.favoriteServiceFlow,
-        settingsRepository.lastServiceFlow,
-        settingsRepository.onboardingDoneFlow
+        settingsUseCase.enabledServicesFlow,
+        settingsUseCase.favoriteServiceFlow,
+        settingsUseCase.lastServiceFlow,
+        settingsUseCase.onboardingDoneFlow
     ) { enabledServices, favoriteService, lastService, onboardingDone ->
         AppStateUiState(
             enabledServices = enabledServices,
@@ -85,14 +85,14 @@ class AppStateViewModel @Inject constructor(
         )
     )
 
-    val themeMode = settingsRepository.themeFlow.stateIn(
+    val themeMode = settingsUseCase.themeFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = "light"
     )
 
     /** null = ещё не загружено (не рисовать каталог), true = список, false = карточки. */
-    val loadedCatalogViewMode = settingsRepository.servicesCatalogListViewFlow
+    val loadedCatalogViewMode = settingsUseCase.servicesCatalogListViewFlow
         .map { it as Boolean? }
         .onStart { emit(null) }
         .stateIn(
@@ -101,7 +101,7 @@ class AppStateViewModel @Inject constructor(
             initialValue = null
         )
 
-    val notificationsEnabled = settingsRepository.notificationsEnabledFlow.stateIn(
+    val notificationsEnabled = settingsUseCase.notificationsEnabledFlow.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = false
@@ -109,7 +109,7 @@ class AppStateViewModel @Inject constructor(
 
     fun setServicesCatalogListView(listView: Boolean) {
         viewModelScope.launch {
-            settingsRepository.setServicesCatalogListView(listView).onFailure {
+            settingsUseCase.setServicesCatalogListView(listView).onFailure {
                 _messageEvent.emit(R.string.settings_save_error)
             }
         }
@@ -117,7 +117,7 @@ class AppStateViewModel @Inject constructor(
 
     fun setNotificationsEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            settingsRepository.setNotificationsEnabled(enabled).onFailure {
+            settingsUseCase.setNotificationsEnabled(enabled).onFailure {
                 _messageEvent.emit(R.string.settings_save_error)
             }
         }
@@ -130,7 +130,7 @@ class AppStateViewModel @Inject constructor(
         viewModelScope.launch {
             val current = uiState.value.enabledServices
             if (enabled) {
-                settingsRepository.setEnabledServices(current + serviceId).onFailure {
+                settingsUseCase.setEnabledServices(current + serviceId).onFailure {
                     _messageEvent.emit(R.string.settings_save_error)
                 }
             } else {
@@ -138,7 +138,7 @@ class AppStateViewModel @Inject constructor(
                     _messageEvent.emit(R.string.min_one_service_required)
                     return@launch
                 }
-                settingsRepository.setEnabledServices(current - serviceId).onFailure {
+                settingsUseCase.setEnabledServices(current - serviceId).onFailure {
                     _messageEvent.emit(R.string.settings_save_error)
                 }
             }
@@ -174,7 +174,7 @@ class AppStateViewModel @Inject constructor(
 
     fun setFavorite(serviceId: ServiceId?) {
         viewModelScope.launch {
-            settingsRepository.setFavorite(serviceId).onFailure {
+            settingsUseCase.setFavorite(serviceId).onFailure {
                 _messageEvent.emit(R.string.settings_save_error)
             }
         }
@@ -182,7 +182,7 @@ class AppStateViewModel @Inject constructor(
 
     fun setLastService(serviceId: ServiceId?) {
         viewModelScope.launch {
-            settingsRepository.setLastService(serviceId).onFailure {
+            settingsUseCase.setLastService(serviceId).onFailure {
                 _messageEvent.emit(R.string.settings_save_error)
             }
         }
@@ -190,7 +190,7 @@ class AppStateViewModel @Inject constructor(
 
     fun setOnboardingDone(done: Boolean) {
         viewModelScope.launch {
-            settingsRepository.setOnboardingDone(done).onFailure {
+            settingsUseCase.setOnboardingDone(done).onFailure {
                 _messageEvent.emit(R.string.settings_save_error)
             }
         }
@@ -198,33 +198,19 @@ class AppStateViewModel @Inject constructor(
 
     fun setEnabledServicesDirectly(services: Set<ServiceId>) {
         viewModelScope.launch {
-            settingsRepository.setEnabledServices(services).onFailure {
+            settingsUseCase.setEnabledServices(services).onFailure {
                 _messageEvent.emit(R.string.settings_save_error)
             }
         }
     }
 
-    /** Сохраняет результат онбординга в DataStore. Вызывать перед навигацией с онбординга. */
+    /** Сохраняет результат онбординга. Вызывать перед навигацией с онбординга. */
     suspend fun completeOnboarding(
         selectedServices: Set<ServiceId>,
         firstService: ServiceId,
         favoriteService: ServiceId? = null
     ): Result<Unit> {
-        settingsRepository.setEnabledServices(selectedServices).onFailure {
-            _messageEvent.emit(R.string.settings_save_error)
-            return Result.failure(it)
-        }
-        settingsRepository.setOnboardingDone(true).onFailure {
-            _messageEvent.emit(R.string.settings_save_error)
-            return Result.failure(it)
-        }
-        settingsRepository.setLastService(firstService).onFailure {
-            _messageEvent.emit(R.string.settings_save_error)
-            return Result.failure(it)
-        }
-        settingsRepository.setFavorite(
-            if (favoriteService != null && favoriteService in selectedServices) favoriteService else null
-        ).onFailure {
+        settingsUseCase.completeOnboarding(selectedServices, firstService, favoriteService).onFailure {
             _messageEvent.emit(R.string.settings_save_error)
             return Result.failure(it)
         }
@@ -233,13 +219,13 @@ class AppStateViewModel @Inject constructor(
 
     fun setTheme(mode: String) {
         viewModelScope.launch {
-            settingsRepository.setTheme(mode).onFailure {
+            settingsUseCase.setTheme(mode).onFailure {
                 _messageEvent.emit(R.string.settings_save_error)
             }
         }
     }
 
-    /** Читает сохранённое состояние из DataStore для первой навигации (избегаем показа онбординга до загрузки). При ошибке — дефолт и messageEvent. */
+    /** Читает сохранённое состояние для первой навигации. При ошибке — дефолт и messageEvent. */
     suspend fun getInitialState(): AppStateUiState {
         val defaultSettings = InitialSettings(
             enabledServices = setOf(ServiceId.DEALS),
@@ -247,7 +233,7 @@ class AppStateViewModel @Inject constructor(
             lastService = null,
             onboardingDone = false
         )
-        val s = settingsRepository.getInitialSettings().getOrElse { e ->
+        val s = settingsUseCase.getInitialSettings().getOrElse { e ->
             Log.e("AppStateViewModel", "getInitialState: load failed, using defaults", e)
             _messageEvent.emit(R.string.settings_load_error)
             defaultSettings

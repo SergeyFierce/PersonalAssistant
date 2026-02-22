@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import android.util.Log
 import kotlinx.coroutines.withContext
 import ru.topskiy.personalassistant.core.di.SettingsRepositoryEntryPoint
+import ru.topskiy.personalassistant.core.domain.SettingsUseCase
 
 /**
  * Точка входа приложения. Инициализирует Firebase, Crashlytics и тему при первом запуске.
@@ -28,15 +29,16 @@ class PersonalAssistantApp : Application() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
-        // Ранний доступ к репозиторию через EntryPoint: инициализация темы до первого экрана.
+        // Ранний доступ к use case через EntryPoint: инициализация темы до первого экрана.
         ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.Main.immediate) {
             try {
-                val repo = EntryPointAccessors.fromApplication(
+                val settingsUseCase: SettingsUseCase = EntryPointAccessors.fromApplication(
                     this@PersonalAssistantApp,
                     SettingsRepositoryEntryPoint::class.java
-                ).getSettingsRepository()
+                ).getSettingsUseCase()
                 withContext(Dispatchers.IO) {
-                    repo.ensureThemeInitialized(this@PersonalAssistantApp)
+                    settingsUseCase.ensureMigrationDone()
+                    settingsUseCase.ensureThemeInitialized(this@PersonalAssistantApp)
                 }
             } catch (e: Throwable) {
                 Log.e("PersonalAssistantApp", "Theme init failed", e)
