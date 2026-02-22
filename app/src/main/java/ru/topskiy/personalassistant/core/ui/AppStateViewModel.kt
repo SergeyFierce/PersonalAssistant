@@ -48,7 +48,7 @@ data class AppStateUiState(
 
 @HiltViewModel
 class AppStateViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository
+    private val settingsUseCase: SettingsUseCase
 ) : ViewModel() {
 
     /**
