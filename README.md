@@ -49,30 +49,41 @@ Android‑приложение‑органайзер с набором серв
 ru.topskiy.personalassistant
 ├── MainActivity.kt
 ├── PersonalAssistantApp.kt
+├── core.data
+│   └── notes
+│       ├── NoteEntity.kt         // Room‑сущность таблицы notes
+│       ├── NotesDao.kt           // DAO с сортировкой pinned сверху, далее updatedAt DESC
+│       └── NotesRepository.kt    // NotesRepository + NotesRepositoryImpl
 ├── core.datastore
 │   ├── EncryptedSettingsRepository.kt
 │   └── SettingsRepository.kt
 ├── core.domain
 │   ├── SettingsUseCase.kt
-│   └── SettingsUseCaseImpl.kt
+│   ├── SettingsUseCaseImpl.kt
+│   └── notes
+│       └── NotesUseCase.kt       // NotesUseCase + NotesUseCaseImpl
 ├── core.di
-│   └── AppModule.kt
+│   └── AppModule.kt              // Подключение Settings/Notes репозиториев и use case
 ├── core.model
 │   ├── AppService.kt
 │   ├── ServiceCategory.kt
 │   ├── ServiceId.kt
-│   └── ServiceRegistry.kt
+│   ├── ServiceRegistry.kt
+│   └── Note.kt                   // NoteId + Note для домена «Заметки»
 ├── core.ui
 │   ├── AppStateViewModel.kt
 │   ├── BootstrapScreen.kt
 │   ├── DockBar.kt
 │   ├── DrawerContent.kt
 │   ├── ManageServicesScreen.kt
-│   ├── Navigation.kt
+│   ├── Navigation.kt             // NOTE_EDITOR_ROUTE = "notes/editor"
+│   ├── NotesViewModel.kt         // ViewModel домена «Заметки»
+│   ├── NotesScreen.kt            // Список заметок (Telegram‑style)
+│   ├── NoteEditorScreen.kt       // Полноэкранный редактор заметки
 │   ├── OnboardingScreen.kt
 │   ├── ScreenParams.kt
 │   ├── ServiceCatalogComponents.kt
-│   ├── ServicesMainScreen.kt
+│   ├── ServicesMainScreen.kt     // Для ServiceId.NOTES показывает NotesScreen, остальное — заглушка
 │   ├── SettingsAboutScreen.kt
 │   ├── SettingsAppearanceScreen.kt
 │   ├── SettingsComponents.kt
@@ -86,6 +97,24 @@ ru.topskiy.personalassistant
     ├── Theme.kt
     └── Type.kt
 ```
+
+### Функциональность
+
+- **Сервисы и док‑бар.** Приложение строится вокруг набора сервисов (`ServiceRegistry`, `ServiceId`): дела, заметки, проекты, финансы, лекарства и т.д. На главном экране отображается док‑бар с включёнными сервисами; при выборе сервиса меняется контент центральной области.
+- **Сервис «Заметки».**
+  - Полностью реализован и служит референсом для будущих сервисов.
+  - Список заметок выглядит как список чатов Telegram:
+    - закреплённые заметки (pinned) всегда сверху,
+    - далее — обычные заметки, отсортированные по времени последнего изменения (`updatedAt` DESC),
+    - каждая строка: заголовок жирным, одна строка превью текста и форматированное время справа (сегодня — `HH:mm`, вчера — «Вчера HH:mm», далее — `d MMM`).
+  - Поддерживается полноэкранный редактор заметки:
+    - создание через FAB «+» на экране списка;
+    - редактирование при тапе по существующей заметке;
+    - мягкое удаление (soft delete) через кнопку удаления в AppBar редактора.
+  - Все операции проходят через `NotesViewModel` → `NotesUseCase` → `NotesRepository` → Room‑таблицу `notes`.
+- **Остальные сервисы.**
+  - Для сервисов, кроме «Заметок», текущая версия приложения по‑прежнему показывает заглушку «Сервис в разработке».
+  - Архитектура (ServiceRegistry, ServicesMainScreen, Navigation) уже готова к подключению новых доменов по тому же шаблону, что и заметки.
 
 ### Сборка и запуск в Android Studio
 - Откройте папку проекта `PersonalAssistant` в Android Studio.
@@ -128,8 +157,49 @@ gradlew.bat :app:testDebugUnitTest
 ```
 (На Windows: `gradlew.bat :app:connectedDebugAndroidTest`.)
 
+### Анализ зависимостей и лицензий
+
+- **Отчёт по лицензиям зависимостей** (используется плагин `com.github.jk1.dependency-license-report`):
+  - Сгенерировать отчёт:
+    - На Windows:
+      ```bash
+      gradlew.bat generateLicenseReport
+      ```
+    - На macOS / Linux:
+      ```bash
+      ./gradlew generateLicenseReport
+      ```
+  - Отчёты будут лежать в `build/reports/licenses/`:
+    - `licenses.json` — машинно‑читаемый список зависимостей и их лицензий;
+    - `licenses.html` — удобный HTML‑отчёт для ручного просмотра.
+
+- **Граф зависимостей / обзор дерева**:
+  - Базовый текстовый отчёт по зависимостям модуля `app`:
+    ```bash
+    ./gradlew :app:dependencies
+    ```
+  - HTML‑отчёт по зависимостям (плагин `project-report`):
+    ```bash
+    ./gradlew :app:htmlDependencyReport
+    ```
+    Готовый отчёт будет в `app/build/reports/project/dependencies.html` и может использоваться при ревью новых зависимостей.
+
 ### CI (GitHub Actions)
-В пайплайне (`.github/workflows/ci.yml`) при push/PR в `main`/`master` выполняются: **assembleDebug** и **testDebugUnitTest**. Instrumented-тесты в CI не запускаются; их нужно прогонять вручную или локально на устройстве/эмуляторе (`connectedDebugAndroidTest`).
+В пайплайне (`.github/workflows/ci.yml`) при push/PR в `main`/`master` выполняются:
+
+- **Сборка и unit‑тесты** (job `build-and-test`):
+  - `:app:assembleDebug`
+  - `:app:testDebugUnitTest`
+- **Базовый набор UI‑тестов** (job `ui-tests`):
+  - поднимается Android‑эмулятор (через `reactivecircus/android-emulator-runner`) и запускается
+    `:app:connectedDebugAndroidTest` с фильтром по классам:
+    `-Pandroid.testInstrumentationRunnerArguments.class=ru.topskiy.personalassistant.BootstrapFlowTest,ru.topskiy.personalassistant.OnboardingMainManageSettingsUiTest`.
+
+Таким образом, в CI автоматически проверяются:
+
+- сборка debug‑варианта;
+- все unit‑тесты;
+- критические UI‑сценарии: bootstrap → онбординг → главная, управление сервисами, настройки.
 
 ### Безопасность
 - **Настройки**: хранятся в EncryptedSharedPreferences (androidx.security:security-crypto); ключ через MasterKeys.

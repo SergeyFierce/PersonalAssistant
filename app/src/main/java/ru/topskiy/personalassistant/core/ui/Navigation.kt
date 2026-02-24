@@ -21,6 +21,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.google.firebase.analytics.FirebaseAnalytics
 import kotlinx.coroutines.CoroutineScope
 
@@ -33,6 +35,7 @@ const val SETTINGS_APPEARANCE_ROUTE = "settings/appearance"
 const val SETTINGS_NOTIFICATIONS_ROUTE = "settings/notifications"
 const val SETTINGS_ABOUT_ROUTE = "settings/about"
 const val SETTINGS_PRIVACY_ROUTE = "settings/privacy"
+const val NOTE_EDITOR_ROUTE = "notes/editor"
 
 private const val SCREEN_NAME_ONBOARDING = "onboarding"
 private const val SCREEN_NAME_MAIN = "main"
@@ -42,6 +45,7 @@ private const val SCREEN_NAME_SETTINGS_APPEARANCE = "settings_appearance"
 private const val SCREEN_NAME_SETTINGS_NOTIFICATIONS = "settings_notifications"
 private const val SCREEN_NAME_SETTINGS_ABOUT = "settings_about"
 private const val SCREEN_NAME_SETTINGS_PRIVACY = "settings_privacy"
+private const val SCREEN_NAME_NOTE_EDITOR = "note_editor"
 
 // ——— Общие анимации (навигация и AnimatedContent) ———
 
@@ -121,7 +125,8 @@ fun AppNavHost(
             SETTINGS_NOTIFICATIONS_ROUTE -> SCREEN_NAME_SETTINGS_NOTIFICATIONS
             SETTINGS_ABOUT_ROUTE -> SCREEN_NAME_SETTINGS_ABOUT
             SETTINGS_PRIVACY_ROUTE -> SCREEN_NAME_SETTINGS_PRIVACY
-            else -> return@LaunchedEffect
+            NOTE_EDITOR_ROUTE -> SCREEN_NAME_NOTE_EDITOR
+            else -> if (route != null && route.startsWith("$NOTE_EDITOR_ROUTE/")) SCREEN_NAME_NOTE_EDITOR else return@LaunchedEffect
         }
         FirebaseAnalytics.getInstance(context).logEvent(
             FirebaseAnalytics.Event.SCREEN_VIEW,
@@ -195,6 +200,17 @@ fun AppNavHost(
         }
         composable(route = SETTINGS_PRIVACY_ROUTE) {
             SettingsPrivacyScreen(params = screenParams)
+        }
+
+        composable(route = NOTE_EDITOR_ROUTE) {
+            NoteEditorScreen(params = screenParams, noteId = null)
+        }
+        composable(
+            route = "$NOTE_EDITOR_ROUTE/{noteId}",
+            arguments = listOf(navArgument("noteId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getLong("noteId")
+            NoteEditorScreen(params = screenParams, noteId = noteId)
         }
     }
 }

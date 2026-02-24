@@ -192,4 +192,22 @@ class EncryptedSettingsRepositoryTest {
         assertEquals(ServiceId.DEALS, initial.lastService)
         assertTrue(initial.onboardingDone)
     }
+
+    @Test
+    fun `ensureMigrationDone is idempotent`() = runTest {
+        val (repo, _) = createRepository()
+
+        // Первый вызов: миграция (при пустом DataStore) и инициализация потоков.
+        repo.ensureMigrationDone()
+        val enabledAfterFirst = repo.enabledServicesFlow.first()
+        val themeAfterFirst = repo.themeFlow.first()
+
+        // Повторный вызов не должен менять состояние и не должен падать.
+        repo.ensureMigrationDone()
+        val enabledAfterSecond = repo.enabledServicesFlow.first()
+        val themeAfterSecond = repo.themeFlow.first()
+
+        assertEquals(enabledAfterFirst, enabledAfterSecond)
+        assertEquals(themeAfterFirst, themeAfterSecond)
+    }
 }

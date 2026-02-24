@@ -84,4 +84,23 @@
 
     <!-- Main screen -->
     <string name="service_in_development">Сервис в разработке</string>
+
+    <!-- Notes -->
+    <string name="notes_title">Заметки</string>
+    <string name="notes_search_hint">Поиск заметок</string>
+    <string name="notes_save_error">Не удалось сохранить заметку</string>
+    <string name="notes_fab_add">Добавить заметку</string>
+    <string name="notes_editor_title_new">Новая заметка</string>
+    <string name="notes_editor_title_edit">Редактирование</string>
+    <string name="notes_editor_title_hint">Заголовок</string>
+    <string name="notes_editor_body_hint">Текст заметки</string>
+    <string name="notes_editor_save">Сохранить</string>
+    <string name="notes_swipe_delete">Удалить</string>
+    <string name="notes_swipe_pin">Закрепить</string>
+    <string name="notes_swipe_unpin">Открепить</string>
+    <string name="notes_section_pinned">Закреплённые</string>
+    <string name="notes_section_all">Все заметки</string>
+    <string name="notes_empty_title">Нет заметок</string>
+    <string name="notes_empty_message">Нажмите «+», чтобы создать первую заметку.</string>
+    <string name="notes_empty_search">Ничего не найдено по этому запросу.</string>
 </resources>
