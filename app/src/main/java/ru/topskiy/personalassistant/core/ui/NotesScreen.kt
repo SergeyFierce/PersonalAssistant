@@ -1,7 +1,10 @@
 package ru.topskiy.personalassistant.core.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,33 +19,47 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.topskiy.personalassistant.R
+import ru.topskiy.personalassistant.core.model.NoteId
 
 @Composable
 fun NotesScreen(
@@ -53,11 +70,65 @@ fun NotesScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val notes = uiState.notes
-    val pinned = notes.filter { it.pinned }
-    val unpinned = notes.filter { !it.pinned }
+    var pendingDeleteId by remember { mutableStateOf<NoteId?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    var selectionMode by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf<Set<NoteId>>(emptySet()) }
+    val deletedMessage = stringResource(R.string.notes_deleted_snackbar)
+    val undoLabel = stringResource(R.string.notes_undo)
+    val selectedCount = selectedIds.size
+    val selectedItems = notes.filter { selectedIds.contains(it.id) }
+    val allPinned = selectedItems.isNotEmpty() && selectedItems.all { it.pinned }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    LaunchedEffect(Unit, deletedMessage, undoLabel) {
+        viewModel.undoSnackbarRequest.collect {
+            val result = snackbarHostState.showSnackbar(deletedMessage, undoLabel)
+            if (result == SnackbarResult.ActionPerformed) viewModel.restoreLastDeleted()
+        }
+    }
+
+    BackHandler(enabled = selectionMode) {
+        selectionMode = false
+        selectedIds = emptySet()
+    }
+
+    if (pendingDeleteId != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text(stringResource(R.string.notes_delete_confirm_title)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.onDeleteNote(pendingDeleteId!!)
+                        pendingDeleteId = null
+                    }
+                ) {
+                    Text(
+                        stringResource(R.string.notes_delete_confirm_button),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) {
+                    Text(stringResource(R.string.notes_delete_confirm_cancel))
+                }
+            }
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
+            NotesHeader(
+                totalCount = notes.size,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
             SearchBar(
                 value = searchQuery,
                 onValueChange = viewModel::onSearchQueryChange,
@@ -90,42 +161,54 @@ fun NotesScreen(
                             .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        if (pinned.isNotEmpty()) {
-                            item(key = "pinned_header") {
+                        uiState.sections.forEachIndexed { index, section ->
+                            val headerKey = "section_header_${section.type}_$index"
+                            item(key = headerKey) {
                                 SectionHeader(
-                                    text = stringResource(R.string.notes_section_pinned)
+                                    text = when (section.type) {
+                                        NotesSectionType.PINNED -> stringResource(R.string.notes_section_pinned)
+                                        NotesSectionType.TODAY -> stringResource(R.string.notes_section_today)
+                                        NotesSectionType.YESTERDAY -> stringResource(R.string.notes_section_yesterday)
+                                        NotesSectionType.EARLIER -> stringResource(R.string.notes_section_earlier)
+                                    }
                                 )
                             }
                             items(
-                                items = pinned,
+                                items = section.items,
                                 key = { it.id.value }
                             ) { item ->
-                                NoteRowWithSwipe(
-                                    item = item,
-                                    darkTheme = params.darkTheme,
-                                    onTap = { params.navController.navigate("$NOTE_EDITOR_ROUTE/${item.id.value}") },
-                                    onSwipeToDelete = { viewModel.onDeleteNote(item.id) },
-                                    onSwipeToTogglePin = { viewModel.onTogglePinned(item.id) }
-                                )
-                            }
-                        }
-                        if (unpinned.isNotEmpty()) {
-                            if (pinned.isNotEmpty()) {
-                                item(key = "all_header") {
-                                    SectionHeader(
-                                        text = stringResource(R.string.notes_section_all)
-                                    )
+                                val isSelected = selectedIds.contains(item.id)
+                                val onItemClick: () -> Unit = {
+                                    if (selectionMode) {
+                                        selectedIds = if (isSelected) {
+                                            selectedIds - item.id
+                                        } else {
+                                            selectedIds + item.id
+                                        }
+                                        if (selectedIds.isEmpty()) {
+                                            selectionMode = false
+                                        }
+                                    } else {
+                                        params.navController.navigate("$NOTE_EDITOR_ROUTE/${item.id.value}")
+                                    }
                                 }
-                            }
-                            items(
-                                items = unpinned,
-                                key = { it.id.value }
-                            ) { item ->
+                                val onItemLongClick: () -> Unit = {
+                                    if (!selectionMode) {
+                                        selectionMode = true
+                                        selectedIds = setOf(item.id)
+                                    } else {
+                                        // В режиме выбора длинное нажатие ведёт себя как обычный клик
+                                        onItemClick()
+                                    }
+                                }
                                 NoteRowWithSwipe(
                                     item = item,
                                     darkTheme = params.darkTheme,
-                                    onTap = { params.navController.navigate("$NOTE_EDITOR_ROUTE/${item.id.value}") },
-                                    onSwipeToDelete = { viewModel.onDeleteNote(item.id) },
+                                    selectionMode = selectionMode,
+                                    isSelected = isSelected,
+                                    onTap = onItemClick,
+                                    onLongPress = onItemLongClick,
+                                    onSwipeToDeleteRequested = { pendingDeleteId = item.id },
                                     onSwipeToTogglePin = { viewModel.onTogglePinned(item.id) }
                                 )
                             }
@@ -149,6 +232,46 @@ fun NotesScreen(
                 modifier = Modifier.size(24.dp)
             )
         }
+        AnimatedVisibility(
+            visible = selectionMode,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+        ) {
+            NotesSelectionBottomBar(
+                selectedCount = selectedCount,
+                allPinned = allPinned,
+                onTogglePinClick = {
+                    if (selectedCount == 0) return@NotesSelectionBottomBar
+                    val targetPinned = !allPinned
+                    val targetIds = selectedItems
+                        .filter { it.pinned != targetPinned }
+                        .map { it.id }
+                    targetIds.forEach { id ->
+                        viewModel.onTogglePinned(id)
+                    }
+                    selectionMode = false
+                    selectedIds = emptySet()
+                },
+                onDeleteClick = {
+                    if (selectedCount == 0) return@NotesSelectionBottomBar
+                    val idsToDelete = selectedIds
+                    selectionMode = false
+                    selectedIds = emptySet()
+                    viewModel.onDeleteNotes(idsToDelete)
+                },
+                onCancelClick = {
+                    selectionMode = false
+                    selectedIds = emptySet()
+                }
+            )
+        }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
     }
 }
 
@@ -172,7 +295,18 @@ private fun SearchBar(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
-        shape = RoundedCornerShape(999.dp),
+        trailingIcon = {
+            if (value.isNotEmpty()) {
+                IconButton(onClick = { onValueChange("") }) {
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        shape = RoundedCornerShape(20.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -230,28 +364,112 @@ private fun SectionHeader(
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NotesSelectionBottomBar(
+    selectedCount: Int,
+    allPinned: Boolean,
+    onTogglePinClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onCancelClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        tonalElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = selectedCount.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = onTogglePinClick,
+                    enabled = selectedCount > 0
+                ) {
+                    Text(
+                        text = if (allPinned) {
+                            stringResource(R.string.notes_swipe_unpin)
+                        } else {
+                            stringResource(R.string.notes_swipe_pin)
+                        }
+                    )
+                }
+                TextButton(
+                    onClick = onDeleteClick,
+                    enabled = selectedCount > 0
+                ) {
+                    Text(
+                        text = stringResource(R.string.notes_delete_confirm_button),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                TextButton(onClick = onCancelClick) {
+                    Text(stringResource(R.string.notes_delete_confirm_cancel))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotesHeader(
+    totalCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+    ) {
+        Text(
+            text = stringResource(R.string.notes_title),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = stringResource(R.string.notes_header_count, totalCount),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun NoteRowWithSwipe(
     item: NoteListItemUi,
     darkTheme: Boolean,
+    selectionMode: Boolean,
+    isSelected: Boolean,
     onTap: () -> Unit,
-    onSwipeToDelete: () -> Unit,
+    onLongPress: () -> Unit,
+    onSwipeToDeleteRequested: () -> Unit,
     onSwipeToTogglePin: () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
                 SwipeToDismissBoxValue.EndToStart -> {
-                    onSwipeToDelete()
-                    true
+                    onSwipeToDeleteRequested()
+                    false
                 }
                 SwipeToDismissBoxValue.StartToEnd -> {
                     onSwipeToTogglePin()
@@ -293,20 +511,29 @@ private fun NoteRowWithSwipe(
                 )
             }
         },
-        enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = true
+        enableDismissFromStartToEnd = !selectionMode,
+        enableDismissFromEndToStart = !selectionMode
     ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp),
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
         ) {
             NoteRow(
                 item = item,
+                selectionMode = selectionMode,
+                isSelected = isSelected,
                 modifier = Modifier
-                    .clickable(onClick = onTap)
+                    .combinedClickable(
+                        onClick = onTap,
+                        onLongClick = onLongPress
+                    )
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             )
         }
@@ -316,33 +543,58 @@ private fun NoteRowWithSwipe(
 @Composable
 private fun NoteRow(
     item: NoteListItemUi,
+    selectionMode: Boolean,
+    isSelected: Boolean,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.Top
     ) {
-        Box(modifier = Modifier.size(20.dp)) {
-            if (item.pinned) {
-                Icon(
-                    imageVector = Icons.Default.PushPin,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
+        Box(
+            modifier = Modifier.size(20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (selectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = null
                 )
             }
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = buildHighlightedText(
+                        text = item.title,
+                        ranges = item.titleHighlightRanges,
+                        highlightColor = MaterialTheme.colorScheme.secondary
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+                if (item.pinned) {
+                    Icon(
+                        imageVector = Icons.Default.PushPin,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(start = 6.dp)
+                            .size(14.dp),
+                        tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f)
+                    )
+                }
+            }
             if (item.bodyPreview.isNotBlank()) {
                 Text(
-                    text = item.bodyPreview,
+                    text = buildHighlightedText(
+                        text = item.bodyPreview,
+                        ranges = item.bodyHighlightRanges,
+                        highlightColor = MaterialTheme.colorScheme.secondary
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
@@ -354,5 +606,26 @@ private fun NoteRow(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+private fun buildHighlightedText(
+    text: String,
+    ranges: List<IntRange>,
+    highlightColor: Color,
+    highlightFontWeight: FontWeight = FontWeight.SemiBold
+): AnnotatedString {
+    if (ranges.isEmpty()) return AnnotatedString(text)
+    return buildAnnotatedString {
+        append(text)
+        ranges.forEach { range ->
+            if (range.first in text.indices && range.last in text.indices && range.first <= range.last) {
+                addStyle(
+                    SpanStyle(color = highlightColor, fontWeight = highlightFontWeight),
+                    start = range.first,
+                    end = range.last + 1
+                )
+            }
+        }
     }
 }

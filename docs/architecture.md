@@ -358,8 +358,9 @@
 - `NotesViewModel` (`@HiltViewModel`):
   - зависит только от `NotesUseCase`;
   - собирает `notesUseCase.notesFlow` в `StateFlow<NotesUiState>`:
-    - маппит `Note` → `NoteListItemUi` (id, `title`, `bodyPreview` с обрезкой до 80 символов, `updatedAtFormatted`, `pinned`);
+    - маппит `Note` → `NoteListItemUi` (id, `title`, `bodyPreview` с обрезкой до 80 символов, `updatedAtFormatted`, `pinned`, `dayGroup`);
     - форматирует время как в списке чатов: **сегодня** — `HH:mm`, **вчера** — «Вчера HH:mm», старые даты — `d MMM`;
+    - формирует список секций `NotesSectionUi`: отдельная секция для закреплённых заметок (PINNED) и секции по дате (**Сегодня**, **Вчера**, **Ранее**) для остальных;
   - методы:
     - `onCreateNote(title, body)` / `onUpdateNote(id, title, body)` — вызывают use case и при ошибке эмитят `R.string.notes_save_error` в общий `messageEvent`;
     - `onTogglePinned(id)` / `onDeleteNote(id)` — переключают закрепление и мягко удаляют заметку;

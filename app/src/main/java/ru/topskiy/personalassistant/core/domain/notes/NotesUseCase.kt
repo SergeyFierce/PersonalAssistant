@@ -26,6 +26,12 @@ interface NotesUseCase {
     suspend fun togglePinned(id: NoteId): Result<Unit>
 
     suspend fun deleteNote(id: NoteId): Result<Unit>
+
+    /**
+     * Восстанавливает мягко удалённую заметку (isDeleted = false).
+     * Используется для Undo после удаления.
+     */
+    suspend fun restoreNote(note: Note): Result<Unit>
 }
 
 class NotesUseCaseImpl(
@@ -83,6 +89,17 @@ class NotesUseCaseImpl(
 
     override suspend fun deleteNote(id: NoteId): Result<Unit> =
         repository.softDelete(id).toResult()
+
+    override suspend fun restoreNote(note: Note): Result<Unit> {
+        val now = timeProvider()
+        val restored = note.copy(
+            isDeleted = false,
+            updatedAt = now,
+            hasLocalChanges = true,
+            lastLocalChangeAt = now
+        )
+        return repository.updateNote(restored).toResult().map { }
+    }
 }
 
 private fun <T> RepositoryResult<T>.toResult(): Result<T> = this

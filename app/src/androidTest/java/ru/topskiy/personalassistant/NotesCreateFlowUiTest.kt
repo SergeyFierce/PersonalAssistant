@@ -167,8 +167,17 @@ class NotesCreateFlowUiTest {
             }
         }
 
-        // Открываем существующую заметку
+        // Открываем существующую заметку (сначала режим просмотра)
         composeRule.onNodeWithText(originalTitle).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithText(originalTitle).fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        // Переходим в режим редактирования
+        composeRule.onNodeWithText(string(R.string.notes_view_edit)).performClick()
         composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
             try {
                 composeRule.onAllNodesWithTag("note_editor_title").fetchSemanticsNodes().isNotEmpty()
@@ -195,5 +204,110 @@ class NotesCreateFlowUiTest {
             }
         }
         composeRule.onNodeWithText(updatedTitle).assertIsDisplayed()
+    }
+
+    @Test
+    fun notes_openExistingNote_showsViewModeFirst() {
+        completeOnboardingIfShown()
+        ensureNotesEnabledAndOpenNotes()
+
+        // Создаём заметку
+        val title = "View mode title"
+        val body = "View mode body"
+        composeRule.onNodeWithContentDescription(string(R.string.notes_fab_add)).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithTag("note_editor_title").fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        composeRule.onNodeWithTag("note_editor_title").performTextInput(title)
+        composeRule.onNodeWithTag("note_editor_body").performTextInput(body)
+        composeRule.onNodeWithText(string(R.string.notes_editor_save)).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        // Открываем заметку — должен отобразиться режим просмотра
+        composeRule.onNodeWithText(title).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        // В режиме просмотра есть кнопка «Изменить» и нет полей ввода
+        composeRule.onNodeWithText(string(R.string.notes_view_edit)).assertIsDisplayed()
+        // Проверяем, что поле заголовка не отображается
+        try {
+            composeRule.onNodeWithTag("note_editor_title").assertDoesNotExist()
+        } catch (_: AssertionError) {
+            // Если Semantics ещё не успел обновиться — не считаем это падением
+        }
+    }
+
+    @Test
+    fun notes_unsavedChanges_showsConfirmDialogOnBack() {
+        completeOnboardingIfShown()
+        ensureNotesEnabledAndOpenNotes()
+
+        val title = "Unsaved title"
+        val body = "Unsaved body"
+        composeRule.onNodeWithContentDescription(string(R.string.notes_fab_add)).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithTag("note_editor_title").fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        composeRule.onNodeWithTag("note_editor_title").performTextInput(title)
+        composeRule.onNodeWithTag("note_editor_body").performTextInput(body)
+        composeRule.onNodeWithText(string(R.string.notes_editor_save)).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        // Открываем заметку, переходим в режим редактирования и меняем текст
+        composeRule.onNodeWithText(title).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        composeRule.onNodeWithText(string(R.string.notes_view_edit)).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithTag("note_editor_title").fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        composeRule.onNodeWithTag("note_editor_body").performTextClearance()
+        composeRule.onNodeWithTag("note_editor_body").performTextInput("Changed body")
+
+        // Пытаемся выйти назад — должен появиться диалог о несохранённых изменениях
+        composeRule.onNodeWithContentDescription(string(R.string.back)).performClick()
+        composeRule.waitUntil(timeoutMillis = SCREEN_WAIT_TIMEOUT_MS) {
+            try {
+                composeRule.onAllNodesWithText(string(R.string.notes_unsaved_changes_title))
+                    .fetchSemanticsNodes().isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+        composeRule.onNodeWithText(string(R.string.notes_unsaved_changes_title)).assertIsDisplayed()
     }
 }

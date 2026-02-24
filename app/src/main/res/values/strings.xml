@@ -87,6 +87,7 @@
 
     <!-- Notes -->
     <string name="notes_title">Заметки</string>
+    <string name="notes_header_count">%d заметок</string>
     <string name="notes_search_hint">Поиск заметок</string>
     <string name="notes_save_error">Не удалось сохранить заметку</string>
     <string name="notes_fab_add">Добавить заметку</string>
@@ -99,8 +100,18 @@
     <string name="notes_swipe_pin">Закрепить</string>
     <string name="notes_swipe_unpin">Открепить</string>
     <string name="notes_section_pinned">Закреплённые</string>
-    <string name="notes_section_all">Все заметки</string>
+    <string name="notes_section_today">Сегодня</string>
+    <string name="notes_section_yesterday">Вчера</string>
+    <string name="notes_section_earlier">Ранее</string>
     <string name="notes_empty_title">Нет заметок</string>
     <string name="notes_empty_message">Нажмите «+», чтобы создать первую заметку.</string>
     <string name="notes_empty_search">Ничего не найдено по этому запросу.</string>
+    <string name="notes_delete_confirm_title">Удалить заметку?</string>
+    <string name="notes_delete_confirm_button">Удалить</string>
+    <string name="notes_delete_confirm_cancel">Отмена</string>
+    <string name="notes_deleted_snackbar">Заметка удалена</string>
+    <string name="notes_undo">Отменить</string>
+    <string name="notes_view_edit">Изменить</string>
+    <string name="notes_unsaved_changes_title">Сохранить изменения?</string>
+    <string name="notes_unsaved_changes_discard">Не сохранять</string>
 </resources>

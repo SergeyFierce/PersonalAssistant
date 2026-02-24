@@ -100,6 +100,13 @@ private class FakeNotesUseCase(initialNotes: List<Note> = emptyList()) : NotesUs
         }
         return Result.success(Unit)
     }
+
+    override suspend fun restoreNote(note: Note): Result<Unit> {
+        val idx = _notes.value.indexOfFirst { it.id == note.id }
+        if (idx < 0) return Result.failure(IllegalStateException("Note not found"))
+        _notes.value = _notes.value.toMutableList().apply { set(idx, note) }
+        return Result.success(Unit)
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -184,7 +191,7 @@ class NotesViewModelTest {
     }
 
     @Test
-    fun `onDeleteNote removes note from uiState`() = runTest {
+    fun `onDeleteNote removes note from uiState (soft delete)`() = runTest {
         val n = note(1, "To delete", "Body")
         val useCase = FakeNotesUseCase(initialNotes = listOf(n))
         val vm = NotesViewModel(useCase)
@@ -199,6 +206,50 @@ class NotesViewModelTest {
     }
 
     @Test
+    fun `restoreLastDeleted brings back last deleted note`() = runTest {
+        val n = note(1, "Restored", "Body")
+        val useCase = FakeNotesUseCase(initialNotes = listOf(n))
+        val vm = NotesViewModel(useCase)
+
+        advanceUntilIdle()
+        assertEquals(1, vm.uiState.value.notes.size)
+
+        vm.onDeleteNote(NoteId(1))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.notes.isEmpty())
+
+        vm.restoreLastDeleted()
+        advanceUntilIdle()
+
+        val notes = vm.uiState.value.notes
+        assertEquals(1, notes.size)
+        assertEquals("Restored", notes[0].title)
+    }
+
+    @Test
+    fun `onDeleteNotes deletes several notes and restoreLastDeleted restores them all`() = runTest {
+        val n1 = note(1, "First", "Body1")
+        val n2 = note(2, "Second", "Body2")
+        val useCase = FakeNotesUseCase(initialNotes = listOf(n1, n2))
+        val vm = NotesViewModel(useCase)
+
+        advanceUntilIdle()
+        assertEquals(2, vm.uiState.value.notes.size)
+
+        vm.onDeleteNotes(setOf(NoteId(1), NoteId(2)))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.notes.isEmpty())
+
+        vm.restoreLastDeleted()
+        advanceUntilIdle()
+
+        val notes = vm.uiState.value.notes
+        assertEquals(2, notes.size)
+        val titles = notes.map { it.title }.toSet()
+        assertTrue(titles.contains("First") && titles.contains("Second"))
+    }
+
+    @Test
     fun `createNote failure emits notes_save_error on messageEvent`() = runTest {
         val failingUseCase = object : NotesUseCase {
             override val notesFlow: Flow<List<Note>> = flow { emit(emptyList()) }
@@ -210,6 +261,8 @@ class NotesViewModelTest {
             override suspend fun togglePinned(id: NoteId): Result<Unit> =
                 Result.failure(IllegalStateException("fail"))
             override suspend fun deleteNote(id: NoteId): Result<Unit> =
+                Result.failure(IllegalStateException("fail"))
+            override suspend fun restoreNote(note: Note): Result<Unit> =
                 Result.failure(IllegalStateException("fail"))
         }
         val vm = NotesViewModel(failingUseCase)
