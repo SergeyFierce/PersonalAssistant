@@ -1,8 +1,8 @@
 package ru.topskiy.personalassistant.core.ui
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,43 +35,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ru.topskiy.personalassistant.core.model.AppService
 import ru.topskiy.personalassistant.core.model.ServiceId
-import ru.topskiy.personalassistant.ui.theme.DockBarBgDark
-import ru.topskiy.personalassistant.ui.theme.DockBarBgLight
-import ru.topskiy.personalassistant.ui.theme.DockBarBorderDark
-import ru.topskiy.personalassistant.ui.theme.DockBarBorderLight
-import ru.topskiy.personalassistant.ui.theme.DockBarSelectedDark
-import ru.topskiy.personalassistant.ui.theme.DockBarSelectedLight
-import ru.topskiy.personalassistant.ui.theme.DockBarUnselectedDark
-import ru.topskiy.personalassistant.ui.theme.DockBarUnselectedLight
-import ru.topskiy.personalassistant.ui.theme.FavoriteStarYellow
 
-private val DOCK_ITEM_WIDTH_DP = 68.dp
+private val DOCK_ITEM_WIDTH_DP = 76.dp
 private val DOCK_ITEM_SPACING_DP = 8.dp
 private val DOCK_EDGE_PADDING_DP = 8.dp
+private const val DOCK_ITEM_ANIMATION_DURATION_MS = 220
 
 @Composable
 fun DockBar(
     dockServices: List<AppService>,
     currentServiceId: ServiceId,
     favoriteServiceId: ServiceId?,
-    darkTheme: Boolean,
     onSelectService: (ServiceId) -> Unit,
     dockListState: LazyListState
 ) {
     val n = dockServices.size
     if (n <= 1) return
 
-    val dockBarBg = if (darkTheme) DockBarBgDark else DockBarBgLight
-    val dockBarBorder = if (darkTheme) DockBarBorderDark else DockBarBorderLight
+    val dockBarBg = MaterialTheme.colorScheme.surface
+    val dockBarBorder = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
     val pillShape = RoundedCornerShape(999.dp)
 
     Box(
@@ -89,26 +78,18 @@ fun DockBar(
             modifier = Modifier
                 .wrapContentWidth()
                 .padding(horizontal = 10.dp)
-                .shadow(2.dp, pillShape)
                 .border(0.5.dp, dockBarBorder, pillShape)
                 .clip(pillShape)
         ) {
-            val density = androidx.compose.ui.platform.LocalDensity.current
-            val itemWidthPx = with(density) { DOCK_ITEM_WIDTH_DP.toPx() }
-            var viewportWidthPx by remember { mutableStateOf(0f) }
-
-            LaunchedEffect(currentServiceId, dockServices, viewportWidthPx) {
+            LaunchedEffect(currentServiceId, dockServices) {
                 val index = dockServices.indexOfFirst { it.id == currentServiceId }
-                if (index >= 0 && viewportWidthPx > 0f) {
-                    val centerOffsetPx = ((viewportWidthPx - itemWidthPx) / 2f).toInt()
-                    dockListState.animateScrollToItem(index, scrollOffset = -centerOffsetPx)
+                if (index >= 0) {
+                    dockListState.animateScrollToItem(index)
                 }
             }
 
             LazyRow(
-                modifier = Modifier
-                    .padding(horizontal = 0.dp, vertical = 4.dp)
-                    .onSizeChanged { viewportWidthPx = it.width.toFloat() },
+                modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp),
                 state = dockListState,
                 contentPadding = PaddingValues(horizontal = DOCK_EDGE_PADDING_DP),
                 horizontalArrangement = Arrangement.spacedBy(DOCK_ITEM_SPACING_DP),
@@ -119,7 +100,6 @@ fun DockBar(
                         service = service,
                         selected = service.id == currentServiceId,
                         isFavorite = service.id == favoriteServiceId,
-                        darkTheme = darkTheme,
                         width = DOCK_ITEM_WIDTH_DP,
                         onClick = { onSelectService(service.id) }
                     )
@@ -132,37 +112,50 @@ fun DockBar(
 /** Капсульная (pill) форма для элементов дока. */
 private val DOCK_ITEM_SHAPE = RoundedCornerShape(999.dp)
 
+private val dockItemColorTween = tween<Color>(durationMillis = DOCK_ITEM_ANIMATION_DURATION_MS, easing = FastOutSlowInEasing)
+
 @Composable
 private fun DockItem(
     service: AppService,
     selected: Boolean,
     isFavorite: Boolean,
-    darkTheme: Boolean,
     width: Dp,
     onClick: () -> Unit
 ) {
-    val selectedColor = if (darkTheme) DockBarSelectedDark else DockBarSelectedLight
-    val selectedBg = selectedColor.copy(alpha = 0.1f)
-    val unselectedColor = if (darkTheme) DockBarUnselectedDark else DockBarUnselectedLight
-    val contentColor = if (selected) selectedColor else unselectedColor
+    val selectedContentColor = MaterialTheme.colorScheme.primary
+    val unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val indicatorColor = MaterialTheme.colorScheme.primaryContainer
+    val targetContentColor = if (selected) selectedContentColor else unselectedContentColor
+    val contentColor by animateColorAsState(
+        targetValue = targetContentColor,
+        animationSpec = dockItemColorTween,
+        label = "dock_item_content"
+    )
     val bg by animateColorAsState(
-        targetValue = if (selected) selectedBg else Color.Transparent,
-        animationSpec = tween(180, easing = FastOutSlowInEasing),
+        targetValue = if (selected) indicatorColor else Color.Transparent,
+        animationSpec = dockItemColorTween,
         label = "dock_item_bg"
     )
+
+    val favoriteModifier = when {
+        selected -> Modifier
+        isFavorite -> Modifier.border(
+            0.5.dp,
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f),
+            DOCK_ITEM_SHAPE
+        )
+        else -> Modifier
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .width(width)
-            .then(
-                if (isFavorite) Modifier.border(0.5.dp, FavoriteStarYellow, DOCK_ITEM_SHAPE)
-                else Modifier
-            )
+            .then(favoriteModifier)
             .clip(DOCK_ITEM_SHAPE)
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp, horizontal = 2.dp)
+            .padding(vertical = 6.dp, horizontal = 4.dp)
     ) {
         Icon(
             imageVector = service.icon,

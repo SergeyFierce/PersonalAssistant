@@ -60,20 +60,7 @@ import ru.topskiy.personalassistant.core.model.ServiceCategory
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
 import ru.topskiy.personalassistant.R
-import ru.topskiy.personalassistant.ui.theme.CatalogCardBgDark
-import ru.topskiy.personalassistant.ui.theme.CatalogCardBgLight
-import ru.topskiy.personalassistant.ui.theme.CatalogCardBorderDark
-import ru.topskiy.personalassistant.ui.theme.CatalogCardBorderLight
-import ru.topskiy.personalassistant.ui.theme.CatalogIconDark
-import ru.topskiy.personalassistant.ui.theme.CatalogIconLight
-import ru.topskiy.personalassistant.ui.theme.FavoriteStarEmpty
-import ru.topskiy.personalassistant.ui.theme.FavoriteStarYellow
-import ru.topskiy.personalassistant.ui.theme.CatalogListDividerDark
-import ru.topskiy.personalassistant.ui.theme.CatalogListDividerLight
-import ru.topskiy.personalassistant.ui.theme.CatalogSectionHeaderDark
-import ru.topskiy.personalassistant.ui.theme.CatalogSectionHeaderLight
-import ru.topskiy.personalassistant.ui.theme.SwitchThumbChecked
-import ru.topskiy.personalassistant.ui.theme.SwitchTrackCheckedGreen
+import ru.topskiy.personalassistant.ui.theme.WarmTheme
 
 private const val CATALOG_CARD_CORNER_DP = 16f
 private val CATALOG_CARD_PADDING_DP = 4.dp
@@ -97,7 +84,7 @@ fun ServiceCatalogSectionHeader(
     Text(
         text = title,
         style = MaterialTheme.typography.titleSmall,
-        color = if (darkTheme) CatalogSectionHeaderDark else CatalogSectionHeaderLight,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 4.dp, top = 16.dp, end = 4.dp, bottom = 6.dp),
         fontWeight = FontWeight.Medium
     )
@@ -113,11 +100,11 @@ fun ServiceCatalogListRow(
     onSetFavorite: (() -> Unit)?,
     darkTheme: Boolean
 ) {
-    val iconTint = if (darkTheme) CatalogIconDark else CatalogIconLight
-    val starTint = if (isFavorite) FavoriteStarYellow else FavoriteStarEmpty
-    val iconCircleBg = if (darkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+    val starTint = if (isFavorite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+    val iconCircleBg = MaterialTheme.colorScheme.surfaceVariant
     val contentAlpha = if (enabled) 1f else 0.5f
-    val starButtonBg = if (isFavorite) FavoriteStarYellow.copy(alpha = 0.15f) else (if (darkTheme) CatalogCardBgDark else CatalogCardBgLight)
+    val starButtonBg = if (isFavorite) MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface
 
     Row(
         modifier = Modifier
@@ -169,6 +156,7 @@ fun ServiceCatalogListRow(
         CatalogSwitch(
             checked = enabled,
             onCheckedChange = onToggle,
+            darkTheme = darkTheme,
             testTag = "service_${service.id}"
         )
     }
@@ -179,17 +167,22 @@ fun ServiceCatalogListRow(
 private fun CatalogSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    darkTheme: Boolean,
     testTag: String,
     modifier: Modifier = Modifier
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         modifier = modifier.testTag(testTag),
         colors = SwitchDefaults.colors(
-            checkedThumbColor = SwitchThumbChecked,
-            checkedTrackColor = SwitchTrackCheckedGreen,
-            checkedBorderColor = SwitchTrackCheckedGreen
+            checkedThumbColor = colorScheme.onPrimary,
+            checkedTrackColor = colorScheme.primary,
+            checkedBorderColor = colorScheme.primary,
+            uncheckedThumbColor = colorScheme.onSurfaceVariant,
+            uncheckedTrackColor = colorScheme.surfaceVariant,
+            uncheckedBorderColor = if (darkTheme) colorScheme.surfaceVariant else colorScheme.outline
         )
     )
 }
@@ -204,13 +197,13 @@ fun ServiceCatalogCard(
     onSetFavorite: (() -> Unit)?,
     darkTheme: Boolean
 ) {
-    val cardBg = if (darkTheme) CatalogCardBgDark else CatalogCardBgLight
-    val borderColor = if (darkTheme) CatalogCardBorderDark else CatalogCardBorderLight
-    val iconTint = if (darkTheme) CatalogIconDark else CatalogIconLight
-    val starTint = if (isFavorite) FavoriteStarYellow else FavoriteStarEmpty
-    val iconCircleBg = if (darkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+    val cardBg = MaterialTheme.colorScheme.surface
+    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
+    val starTint = if (isFavorite) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+    val iconCircleBg = MaterialTheme.colorScheme.surfaceVariant
     val contentAlpha = if (enabled) 1f else 0.5f
-    val starButtonBg = if (isFavorite) FavoriteStarYellow.copy(alpha = 0.15f) else cardBg
+    val starButtonBg = if (isFavorite) MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f) else cardBg
 
     Card(
         modifier = Modifier
@@ -254,6 +247,7 @@ fun ServiceCatalogCard(
                 CatalogSwitch(
                     checked = enabled,
                     onCheckedChange = onToggle,
+                    darkTheme = darkTheme,
                     testTag = "service_${service.id}",
                     modifier = Modifier.size(width = 36.dp, height = 24.dp)
                 )
@@ -291,8 +285,8 @@ fun ServiceCatalogListView(
     darkTheme: Boolean
 ) {
     val groupShape = RoundedCornerShape(CATALOG_CARD_CORNER_DP.dp)
-    val cardBg = if (darkTheme) CatalogCardBgDark else CatalogCardBgLight
-    val dividerColor = if (darkTheme) CatalogListDividerDark else CatalogListDividerLight
+    val cardBg = MaterialTheme.colorScheme.surface
+    val dividerColor = WarmTheme.extendedColors.divider
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -306,7 +300,7 @@ fun ServiceCatalogListView(
                 color = cardBg,
                 tonalElevation = 0.dp,
                 shadowElevation = 0.dp,
-                border = BorderStroke(0.5.dp, if (darkTheme) CatalogCardBorderDark else CatalogCardBorderLight)
+                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     services.forEachIndexed { index, service ->

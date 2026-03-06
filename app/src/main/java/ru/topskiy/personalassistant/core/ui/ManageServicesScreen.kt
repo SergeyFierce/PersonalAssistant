@@ -58,10 +58,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.topskiy.personalassistant.R
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
-import ru.topskiy.personalassistant.ui.theme.CatalogGroupedBgDark
-import ru.topskiy.personalassistant.ui.theme.CatalogGroupedBgLight
-import ru.topskiy.personalassistant.ui.theme.TopAppBarDark
-import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 
 private enum class ServiceCatalogViewMode { LIST, GRID }
 
@@ -85,7 +81,7 @@ private fun ManageServicesTopBar(
                 Text(
                     text = stringResource(R.string.enabled_count, params.uiState.enabledServices.size),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.85f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
@@ -110,10 +106,10 @@ private fun ManageServicesTopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = if (params.darkTheme) TopAppBarDark else TopAppBarLight,
-            titleContentColor = Color.White,
-            navigationIconContentColor = Color.White,
-            actionIconContentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     )
 }
@@ -282,7 +278,7 @@ fun ManageServicesScreen(params: ScreenParams) {
             modifier = Modifier
                 .fillMaxSize()
                 .drawerOpenGestureOnContent(params.onOpenDrawer)
-                .background(if (params.darkTheme) CatalogGroupedBgDark else CatalogGroupedBgLight)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
             val columnCount = ((maxWidth - CATALOG_HORIZONTAL_INSET_DP * 2) / CATALOG_MIN_CARD_WIDTH_DP)

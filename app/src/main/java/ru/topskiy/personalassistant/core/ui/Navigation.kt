@@ -47,8 +47,7 @@ private const val SCREEN_NAME_SETTINGS_PRIVACY = "settings_privacy"
 
 private val navSlideTween250 = tween<IntOffset>(durationMillis = 250)
 private val navSlideTween320 = tween<IntOffset>(durationMillis = 320, easing = FastOutSlowInEasing)
-private val horizontalSlideTween280 = tween<IntOffset>(durationMillis = 280, easing = FastOutSlowInEasing)
-private val fadeTween200 = tween<Float>(durationMillis = 200)
+private val fadeTween240 = tween<Float>(durationMillis = 240, easing = FastOutSlowInEasing)
 
 /** Enter/exit для перехода «вперёд» (контент приходит справа, уходит влево). */
 private fun navEnterTransition() =
@@ -68,22 +67,11 @@ private fun navDrawerLikeExitTransition() =
     slideOutHorizontally(targetOffsetX = { it }, animationSpec = navSlideTween320)
 
 /**
- * ContentTransform для горизонтального переключения контента (например, смена сервиса в доке).
- * [forward] = true: новый контент справа (слайд влево), старый уезжает влево.
+ * ContentTransform для переключения контента при смене сервиса в доке.
+ * Мягкий fade без слайда — спокойная, премиальная смена без дёргания.
  */
 fun horizontalSlideWithFadeContentTransform(forward: Boolean): ContentTransform {
-    val enterSlide = if (forward) {
-        slideInHorizontally(initialOffsetX = { it }, animationSpec = horizontalSlideTween280)
-    } else {
-        slideInHorizontally(initialOffsetX = { -it }, animationSpec = horizontalSlideTween280)
-    }
-    val exitSlide = if (forward) {
-        slideOutHorizontally(targetOffsetX = { -it }, animationSpec = horizontalSlideTween280)
-    } else {
-        slideOutHorizontally(targetOffsetX = { it }, animationSpec = horizontalSlideTween280)
-    }
-    return (enterSlide + fadeIn(animationSpec = fadeTween200)) togetherWith
-        (exitSlide + fadeOut(animationSpec = fadeTween200))
+    return fadeIn(animationSpec = fadeTween240) togetherWith fadeOut(animationSpec = fadeTween240)
 }
 
 @Composable

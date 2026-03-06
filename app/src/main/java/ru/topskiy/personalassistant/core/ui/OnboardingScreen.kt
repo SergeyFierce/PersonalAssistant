@@ -1,7 +1,6 @@
 package ru.topskiy.personalassistant.core.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,15 +50,7 @@ import ru.topskiy.personalassistant.R
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
 import ru.topskiy.personalassistant.core.model.ServiceCategory
-import ru.topskiy.personalassistant.ui.theme.OnboardingBackgroundDark
-import ru.topskiy.personalassistant.ui.theme.OnboardingBackgroundLight
-import ru.topskiy.personalassistant.ui.theme.OnboardingCardDark
-import ru.topskiy.personalassistant.ui.theme.OnboardingCardLight
-import ru.topskiy.personalassistant.ui.theme.OnboardingSecondaryTextDark
-import ru.topskiy.personalassistant.ui.theme.OnboardingSecondaryTextLight
-import ru.topskiy.personalassistant.ui.theme.OnboardingSeparatorDark
-import ru.topskiy.personalassistant.ui.theme.OnboardingSeparatorLight
-import ru.topskiy.personalassistant.ui.theme.OnboardingTintBlue
+import ru.topskiy.personalassistant.ui.theme.WarmTheme
 
 private val CardShape = RoundedCornerShape(12.dp)
 private val ButtonShape = RoundedCornerShape(12.dp)
@@ -77,11 +68,12 @@ fun OnboardingScreen(
     var showServicesDialog by remember { mutableStateOf(false) }
     var showFavoriteDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val isDark = isSystemInDarkTheme()
-    val backgroundColor = if (isDark) OnboardingBackgroundDark else OnboardingBackgroundLight
-    val cardColor = if (isDark) OnboardingCardDark else OnboardingCardLight
-    val secondaryColor = if (isDark) OnboardingSecondaryTextDark else OnboardingSecondaryTextLight
-    val separatorColor = if (isDark) OnboardingSeparatorDark else OnboardingSeparatorLight
+    val colors = MaterialTheme.colorScheme
+    val extended = WarmTheme.extendedColors
+    val backgroundColor = colors.background
+    val cardColor = colors.surface
+    val secondaryColor = colors.onSurfaceVariant
+    val separatorColor = extended.divider
     val scrollState = rememberScrollState()
     val configuration = LocalConfiguration.current
     val bottomPadding = (configuration.screenHeightDp * 0.04f).dp.coerceAtLeast(24.dp)
@@ -265,7 +257,7 @@ fun OnboardingScreen(
                 .padding(horizontal = HorizontalPadding)
                 .padding(bottom = bottomPadding),
             shape = ButtonShape,
-            color = if (buttonEnabled) OnboardingTintBlue else secondaryColor.copy(alpha = 0.4f)
+            color = if (buttonEnabled) colors.primary else extended.disabled.copy(alpha = 0.4f)
         ) {
             Row(
                 modifier = Modifier
@@ -303,11 +295,11 @@ fun OnboardingScreen(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = if (buttonEnabled) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                    }
+                        color = if (buttonEnabled) {
+                            colors.onPrimary
+                        } else {
+                            colors.onSurfaceVariant.copy(alpha = 0.8f)
+                        }
                 )
             }
         }
@@ -416,12 +408,14 @@ private fun OnboardingServicesDialog(
                                 if (isSelected) {
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
-                                        color = OnboardingTintBlue
+                                        color = MaterialTheme.colorScheme.primary
                                     ) {
                                         Icon(
                                             imageVector = Icons.Filled.Check,
                                             contentDescription = null,
-                                            modifier = Modifier.padding(4.dp).size(16.dp),
+                                            modifier = Modifier
+                                                .padding(4.dp)
+                                                .size(16.dp),
                                             tint = MaterialTheme.colorScheme.onPrimary
                                         )
                                     }
@@ -511,11 +505,13 @@ private fun OnboardingFavoriteDialog(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         if (selectedFavorite == null) {
-                            Surface(shape = RoundedCornerShape(6.dp), color = OnboardingTintBlue) {
+                            Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primary) {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
                                     contentDescription = null,
-                                    modifier = Modifier.padding(4.dp).size(16.dp),
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .size(16.dp),
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
@@ -572,11 +568,13 @@ private fun OnboardingFavoriteDialog(
                                     )
                                 }
                                 if (isFavorite) {
-                                    Surface(shape = RoundedCornerShape(6.dp), color = OnboardingTintBlue) {
+                                    Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primary) {
                                         Icon(
                                             imageVector = Icons.Filled.Check,
                                             contentDescription = null,
-                                            modifier = Modifier.padding(4.dp).size(16.dp),
+                                            modifier = Modifier
+                                                .padding(4.dp)
+                                                .size(16.dp),
                                             tint = MaterialTheme.colorScheme.onPrimary
                                         )
                                     }

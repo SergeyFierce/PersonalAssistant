@@ -34,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.airbnb.lottie.LottieProperty
@@ -45,10 +44,6 @@ import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.topskiy.personalassistant.R
-import ru.topskiy.personalassistant.ui.theme.CatalogGroupedBgDark
-import ru.topskiy.personalassistant.ui.theme.CatalogGroupedBgLight
-import ru.topskiy.personalassistant.ui.theme.TopAppBarDark
-import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 
 private val ROW_HORIZONTAL_PADDING = 16.dp
 private val ROW_VERTICAL_PADDING = 11.dp
@@ -73,10 +68,10 @@ fun SettingsAppearanceScreen(params: ScreenParams) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (params.darkTheme) TopAppBarDark else TopAppBarLight,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
             )
         }
@@ -85,7 +80,7 @@ fun SettingsAppearanceScreen(params: ScreenParams) {
             modifier = Modifier
                 .fillMaxSize()
                 .drawerOpenGestureOnContent(params.onOpenDrawer)
-                .background(if (params.darkTheme) CatalogGroupedBgDark else CatalogGroupedBgLight)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {

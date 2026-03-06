@@ -37,10 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import ru.topskiy.personalassistant.R
-import ru.topskiy.personalassistant.ui.theme.DrawerBodyDark
-import ru.topskiy.personalassistant.ui.theme.DrawerBodyLight
-import ru.topskiy.personalassistant.ui.theme.DrawerHeaderDark
-import ru.topskiy.personalassistant.ui.theme.DrawerHeaderLight
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -68,7 +64,7 @@ fun DrawerContent(
     ModalDrawerSheet(
         modifier = Modifier.width(320.dp).fillMaxHeight(),
         drawerShape = RoundedCornerShape(0.dp),
-        drawerContainerColor = if (darkTheme) DrawerHeaderDark else DrawerHeaderLight
+        drawerContainerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(modifier = Modifier.fillMaxHeight()) {
             Box(
@@ -100,13 +96,22 @@ fun DrawerContent(
                 val composition by rememberLottieComposition(
                     LottieCompositionSpec.RawRes(R.raw.day_night)
                 )
-                val whiteColorFilter = remember {
-                    PorterDuffColorFilter(android.graphics.Color.WHITE, PorterDuff.Mode.SRC_ATOP)
+                val themeToggleColor = if (darkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                val themeColorFilter = remember(themeToggleColor) {
+                    PorterDuffColorFilter(
+                        android.graphics.Color.argb(
+                            (themeToggleColor.alpha * 255).toInt(),
+                            (themeToggleColor.red * 255).toInt(),
+                            (themeToggleColor.green * 255).toInt(),
+                            (themeToggleColor.blue * 255).toInt()
+                        ),
+                        PorterDuff.Mode.SRC_ATOP
+                    )
                 }
                 val lottieDynamicProperties = rememberLottieDynamicProperties(
                     rememberLottieDynamicProperty(
                         property = LottieProperty.COLOR_FILTER,
-                        value = whiteColorFilter,
+                        value = themeColorFilter,
                         *arrayOf("**")
                     )
                 )
@@ -137,27 +142,33 @@ fun DrawerContent(
                     )
                 }
             }
-            val drawerItemColor = if (darkTheme) MaterialTheme.colorScheme.onSurface else Color.Black
+            val drawerItemUnselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .fillMaxHeight()
-                    .background(if (darkTheme) DrawerBodyDark else DrawerBodyLight)
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .navigationBarsPadding()
                 ) {
+                    val isServicesSelected = currentRoute == MANAGE_SERVICES_ROUTE
+                    val isSettingsSelected = currentRoute?.startsWith("settings") == true
+
                     Box(modifier = Modifier.clip(RoundedCornerShape(0.dp))) {
                         NavigationDrawerItem(
                             icon = { Icon(Icons.Outlined.Apps, contentDescription = stringResource(R.string.drawer_services)) },
                             label = { Text(stringResource(R.string.drawer_services), modifier = Modifier.padding(start = 24.dp)) },
-                            selected = false,
+                            selected = isServicesSelected,
                             colors = NavigationDrawerItemDefaults.colors(
-                                unselectedIconColor = drawerItemColor,
-                                unselectedTextColor = drawerItemColor
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = drawerItemUnselectedColor,
+                                unselectedTextColor = drawerItemUnselectedColor
                             ),
                             onClick = {
                                 onItemClickThenCloseDrawer {
@@ -172,10 +183,13 @@ fun DrawerContent(
                         NavigationDrawerItem(
                             icon = { Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.drawer_settings)) },
                             label = { Text(stringResource(R.string.drawer_settings), modifier = Modifier.padding(start = 24.dp)) },
-                            selected = false,
+                            selected = isSettingsSelected,
                             colors = NavigationDrawerItemDefaults.colors(
-                                unselectedIconColor = drawerItemColor,
-                                unselectedTextColor = drawerItemColor
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = drawerItemUnselectedColor,
+                                unselectedTextColor = drawerItemUnselectedColor
                             ),
                             onClick = {
                                 onItemClickThenCloseDrawer {

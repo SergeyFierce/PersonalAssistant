@@ -12,20 +12,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import ru.topskiy.personalassistant.R
-import ru.topskiy.personalassistant.ui.theme.CatalogGroupedBgDark
-import ru.topskiy.personalassistant.ui.theme.CatalogGroupedBgLight
-import ru.topskiy.personalassistant.ui.theme.TopAppBarDark
-import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,10 +47,10 @@ fun SettingsAboutScreen(params: ScreenParams) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (params.darkTheme) TopAppBarDark else TopAppBarLight,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
             )
         }
@@ -63,7 +59,7 @@ fun SettingsAboutScreen(params: ScreenParams) {
             modifier = Modifier
                 .fillMaxSize()
                 .drawerOpenGestureOnContent(params.onOpenDrawer)
-                .background(if (params.darkTheme) CatalogGroupedBgDark else CatalogGroupedBgLight)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {

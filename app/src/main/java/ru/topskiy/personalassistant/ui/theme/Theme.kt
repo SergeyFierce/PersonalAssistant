@@ -1,53 +1,91 @@
 package ru.topskiy.personalassistant.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
+
+@Immutable
+data class WarmExtendedColors(
+    val surfaceElevated: androidx.compose.ui.graphics.Color,
+    val divider: androidx.compose.ui.graphics.Color,
+    val disabled: androidx.compose.ui.graphics.Color,
+    val primaryPressed: androidx.compose.ui.graphics.Color
+)
+
+private val LightExtendedColors = WarmExtendedColors(
+    surfaceElevated = WarmLightSurfaceElevated,
+    divider = WarmLightDivider,
+    disabled = WarmLightDisabled,
+    primaryPressed = WarmLightPrimaryPressed
+)
+
+private val DarkExtendedColors = WarmExtendedColors(
+    surfaceElevated = WarmDarkSurfaceElevated,
+    divider = WarmDarkDivider,
+    disabled = WarmDarkDisabled,
+    primaryPressed = WarmDarkPrimaryPressed
+)
+
+val LocalWarmExtendedColors = staticCompositionLocalOf { LightExtendedColors }
+
+object WarmTheme {
+    val extendedColors: WarmExtendedColors
+        @Composable
+        get() = LocalWarmExtendedColors.current
+}
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = WarmDarkPrimary,
+    onPrimary = WarmDarkOnPrimary,
+    primaryContainer = WarmDarkPrimaryContainer,
+    secondary = WarmDarkSecondary,
+    onSecondary = WarmDarkOnSecondary,
+    background = WarmDarkBackground,
+    onBackground = WarmDarkOnSurface,
+    surface = WarmDarkSurface,
+    onSurface = WarmDarkOnSurface,
+    surfaceVariant = WarmDarkSurfaceVariant,
+    onSurfaceVariant = WarmDarkOnSurfaceVariant,
+    outline = WarmDarkOutline,
+    error = WarmDarkError,
+    onError = WarmDarkOnError
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-    // Other default colors to override:
-    // background = Color(0xFFFFFBFE),
-    // surface = Color(0xFFFFFBFE),
-    // onPrimary = Color.White,
-    // onSecondary = Color.White,
-    // onTertiary = Color.White,
-    // onBackground = Color(0xFF1C1B1F),
-    // onSurface = Color(0xFF1C1B1F),
+    primary = WarmLightPrimary,
+    onPrimary = WarmLightOnPrimary,
+    primaryContainer = WarmLightPrimaryContainer,
+    secondary = WarmLightSecondary,
+    onSecondary = WarmLightOnSecondary,
+    background = WarmLightBackground,
+    onBackground = WarmLightOnSurface,
+    surface = WarmLightSurface,
+    onSurface = WarmLightOnSurface,
+    surfaceVariant = WarmLightSurfaceVariant,
+    onSurfaceVariant = WarmLightOnSurfaceVariant,
+    outline = WarmLightOutline,
+    error = WarmLightError,
+    onError = WarmLightOnError
 )
 
 @Composable
 fun PersonalAssistantTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val extended = if (darkTheme) DarkExtendedColors else LightExtendedColors
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalWarmExtendedColors provides extended) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

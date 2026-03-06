@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -33,10 +34,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import ru.topskiy.personalassistant.R
 import ru.topskiy.personalassistant.core.model.ServiceId
 import ru.topskiy.personalassistant.core.model.ServiceRegistry
-import ru.topskiy.personalassistant.ui.theme.ScreenBackgroundDark
-import ru.topskiy.personalassistant.ui.theme.ScreenBackgroundLight
-import ru.topskiy.personalassistant.ui.theme.TopAppBarDark
-import ru.topskiy.personalassistant.ui.theme.TopAppBarLight
 
 private const val PRESS_AGAIN_TO_EXIT_INTERVAL_MS = 2000L
 
@@ -103,10 +100,10 @@ fun ServicesMainScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (params.darkTheme) TopAppBarDark else TopAppBarLight,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
             )
         },
@@ -116,7 +113,6 @@ fun ServicesMainScreen(
                     dockServices = dockServices,
                     currentServiceId = currentServiceId,
                     favoriteServiceId = params.uiState.favoriteService,
-                    darkTheme = params.darkTheme,
                     onSelectService = { id ->
                         params.viewModel.setLastService(id)
                         currentServiceId = id
@@ -130,7 +126,7 @@ fun ServicesMainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .drawerOpenGestureOnContent(params.onOpenDrawer)
-                .background(if (params.darkTheme) ScreenBackgroundDark else ScreenBackgroundLight)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(16.dp)
                 .padding(innerPadding),
             contentAlignment = Alignment.Center

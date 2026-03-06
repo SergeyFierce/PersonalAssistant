@@ -23,14 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ru.topskiy.personalassistant.R
-import ru.topskiy.personalassistant.ui.theme.CatalogCardBgDark
-import ru.topskiy.personalassistant.ui.theme.CatalogCardBgLight
-import ru.topskiy.personalassistant.ui.theme.CatalogListDividerDark
-import ru.topskiy.personalassistant.ui.theme.CatalogListDividerLight
-import ru.topskiy.personalassistant.ui.theme.CatalogSectionHeaderDark
-import ru.topskiy.personalassistant.ui.theme.CatalogSectionHeaderLight
-import ru.topskiy.personalassistant.ui.theme.SwitchThumbChecked
-import ru.topskiy.personalassistant.ui.theme.SwitchTrackCheckedGreen
+import ru.topskiy.personalassistant.ui.theme.WarmTheme
 
 private val GROUP_CORNER_RADIUS = 10.dp
 private val ROW_VERTICAL_PADDING = 11.dp
@@ -47,7 +40,7 @@ fun SettingsGroup(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val groupBg = if (darkTheme) CatalogCardBgDark else CatalogCardBgLight
+    val groupBg = MaterialTheme.colorScheme.surface
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -76,7 +69,7 @@ fun SettingsRow(
     onClick: () -> Unit
 ) {
     val titleColor = MaterialTheme.colorScheme.onSurface
-    val valueColor = if (darkTheme) CatalogSectionHeaderDark else CatalogSectionHeaderLight
+    val valueColor = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -123,7 +116,7 @@ fun SettingsSwitchRow(
     subtitle: String? = null
 ) {
     val titleColor = MaterialTheme.colorScheme.onSurface
-    val subtitleColor = if (darkTheme) CatalogSectionHeaderDark else CatalogSectionHeaderLight
+    val subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -150,13 +143,17 @@ fun SettingsSwitchRow(
                     )
                 }
             }
+            val colorScheme = MaterialTheme.colorScheme
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = SwitchThumbChecked,
-                    checkedTrackColor = SwitchTrackCheckedGreen,
-                    checkedBorderColor = SwitchTrackCheckedGreen
+                    checkedThumbColor = colorScheme.onPrimary,
+                    checkedTrackColor = colorScheme.primary,
+                    checkedBorderColor = colorScheme.primary,
+                    uncheckedThumbColor = colorScheme.onSurfaceVariant,
+                    uncheckedTrackColor = colorScheme.surfaceVariant,
+                    uncheckedBorderColor = if (darkTheme) colorScheme.surfaceVariant else colorScheme.outline
                 )
             )
         }
@@ -168,7 +165,7 @@ fun SettingsSwitchRow(
  */
 @Composable
 fun SettingsRowDivider(darkTheme: Boolean) {
-    val dividerColor = if (darkTheme) CatalogListDividerDark else CatalogListDividerLight
+    val dividerColor = WarmTheme.extendedColors.divider
     HorizontalDivider(
         modifier = Modifier.padding(horizontal = ROW_HORIZONTAL_PADDING),
         color = dividerColor,
